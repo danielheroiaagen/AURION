@@ -58,6 +58,18 @@ The GitHub Actions workflow at `.github/workflows/ci.yml` runs:
 
 Branch protection should require the `verify` job after this workflow is merged or active on `main`.
 
+## Repository protection status
+
+Attempted to enable basic `main` branch protection on 2026-06-01.
+
+GitHub returned:
+
+```txt
+Upgrade to GitHub Pro or make this repository public to enable this feature.
+```
+
+Decision: keep the repository private for now and enforce review discipline through PR workflow until branch protection is available. Revisit after upgrading GitHub plan or deciding to make the repository public.
+
 ## Next step
 
 Install dependencies and turn the placeholder NestJS scaffold into a fully buildable API workspace.
