@@ -12,4 +12,6 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - Phase 0 GitHub readiness plan.
 - ADR for the initial Voice Agent SaaS Core MVP.
 - ADR for Git/GitHub governance.
-
+- Local GitHub repository creation tool.
+- Private GitHub repository `danielheroiaagen/AURION`.
+- Phase 0 GitHub decision issues for implementation blockers.
