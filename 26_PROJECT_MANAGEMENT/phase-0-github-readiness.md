@@ -40,10 +40,10 @@ AURION has a clean Git history, a GitHub-ready repository, a clear MVP boundary,
 - [x] PR and issue templates added.
 - [x] MVP ADR created.
 - [x] Git/GitHub governance ADR created.
+- [x] Initial local commit created.
 - [ ] GitHub remote created and connected.
 - [ ] Initial commit pushed to GitHub.
 
 ## Next step
 
 Create an empty GitHub repository under `danielheroiaagen`, connect it as `origin`, and push `main`.
-
