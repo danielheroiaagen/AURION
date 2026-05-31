@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "python -m unittest tests.project.test_phase1_foundation tests.tools.test_create_github_repo",
+    "test": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.tools.test_create_github_repo",
     "test:project": "python -m unittest tests.project.test_phase1_foundation",
     "test:tools": "python -m unittest tests.tools.test_create_github_repo",
     "lint": "echo \"lint not configured yet\"",

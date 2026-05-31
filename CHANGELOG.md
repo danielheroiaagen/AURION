@@ -16,3 +16,4 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - Private GitHub repository `danielheroiaagen/AURION`.
 - Phase 0 GitHub decision issues for implementation blockers.
 - Phase 1 NestJS + TypeScript backend decision and initial monorepo scaffold.
+- GitHub Actions CI workflow for tests, API typecheck, and API build.

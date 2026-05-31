@@ -21,7 +21,7 @@ La documentación está diseñada para que una IA de desarrollo, Hermes Agent, C
 | Versión documental | `draft-v3-hermes-pseudocode` |
 | MVP inicial | Voice Agent SaaS Core |
 | Repositorio | Preparado para Git/GitHub desde Fase 0 |
-| Archivos registrados | 502 archivos en `MANIFEST.json` |
+| Archivos registrados | 504 archivos en `MANIFEST.json` |
 
 El primer objetivo no es construir todo AURION a la vez. El primer objetivo es validar un núcleo profesional: agente de voz SaaS multi-tenant, conocimiento, una acción controlada, auditoría, métricas y pruebas críticas.
 
@@ -98,7 +98,7 @@ El primer objetivo no es construir todo AURION a la vez. El primer objetivo es v
 
 ## Tamaño del paquete
 
-- Archivos totales: 502
+- Archivos totales: 504
 - Versión: `draft-v3-hermes-pseudocode`
 
 

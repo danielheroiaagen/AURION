@@ -45,7 +45,18 @@ Chain strategy: pending
 - [x] Project structure tests pass.
 - [x] Node dependencies installed and locked.
 - [x] API build/typecheck commands pass.
-- [ ] CI workflow added.
+- [x] CI workflow added.
+
+## CI gates
+
+The GitHub Actions workflow at `.github/workflows/ci.yml` runs:
+
+1. `npm ci`
+2. `npm test`
+3. `npm --workspace @aurion/api run typecheck`
+4. `npm --workspace @aurion/api run build`
+
+Branch protection should require the `verify` job after this workflow is merged or active on `main`.
 
 ## Next step
 
