@@ -22,6 +22,8 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 - PostgreSQL es la fuente principal de verdad.
 - Los controladores no contienen lógica de negocio.
 - Toda acción crítica debe ser auditable, idempotente y autorizada.
+- El backend MVP usa NestJS + TypeScript según `03_ARCHITECTURE/adr/ADR-006-nestjs-typescript-backend.md`.
+- El dominio no puede importar NestJS; NestJS vive en interfaces, módulos de wiring y adaptadores.
 
 ## Directrices específicas
 - Mantener lenguaje claro, operativo y verificable.
