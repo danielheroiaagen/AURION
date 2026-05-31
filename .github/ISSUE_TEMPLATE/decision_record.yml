@@ -1,0 +1,27 @@
+name: Architecture decision
+description: Track a decision that should become or update an ADR.
+title: "adr: "
+labels: ["architecture", "decision", "needs-triage"]
+body:
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision needed
+      description: What decision must be made?
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options and tradeoffs
+      description: List the realistic options and their consequences.
+    validations:
+      required: true
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Recommendation
+      description: What do you recommend and why?
+    validations:
+      required: true
+

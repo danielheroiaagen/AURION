@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Framework outputs
+.next/
+out/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs and local state
+*.log
+logs/
+.cache/
+.turbo/
+.vercel/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local databases / dumps
+*.sqlite
+*.db
+*.dump
+*.bak
+

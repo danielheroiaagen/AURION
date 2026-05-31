@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a product or technical feature for AURION.
+title: "feat: "
+labels: ["feature", "needs-triage"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What user or business outcome should this create?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included and intentionally excluded?
+    validations:
+      required: true
+  - type: textarea
+    id: docs
+    attributes:
+      label: Related documentation
+      description: Link the PRD, ADR, architecture doc, pseudocode, or checklist.
+    validations:
+      required: true
+

@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible issue.
+title: "fix: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Reproduction / verification
+      description: Steps, logs, screenshots, or failing test.
+    validations:
+      required: true
+
