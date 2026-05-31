@@ -41,6 +41,7 @@ AURION has a clean Git history, a GitHub-ready repository, a clear MVP boundary,
 - [x] MVP ADR created.
 - [x] Git/GitHub governance ADR created.
 - [x] Initial local commit created.
+- [x] Local GitHub repository creation tool added and tested.
 - [ ] GitHub remote created and connected.
 - [ ] Initial commit pushed to GitHub.
 

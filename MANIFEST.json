@@ -5,7 +5,7 @@
   "owner": "Daniel Gonzalez Junco",
   "architecture": "Hexagonal Architecture + Clean Architecture",
   "primary_database": "PostgreSQL",
-  "file_count": 482,
+  "file_count": 487,
   "new_in_v3": [
     "Deep Hermes Agent Workforce documentation",
     "Human-readable pseudocode blueprint layer",
@@ -257,6 +257,7 @@
     "26_PROJECT_MANAGEMENT/decision-log.md",
     "26_PROJECT_MANAGEMENT/documentation-process.md",
     "26_PROJECT_MANAGEMENT/execution-plan.md",
+    "26_PROJECT_MANAGEMENT/github-repository-tool.md",
     "26_PROJECT_MANAGEMENT/meeting-rhythm.md",
     "26_PROJECT_MANAGEMENT/milestones.md",
     "26_PROJECT_MANAGEMENT/phase-0-github-readiness.md",
@@ -502,6 +503,10 @@
     "MANIFEST.json",
     "PSEUDOCODE_START_HERE.md",
     "README.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "tests/tools/test_create_github_repo.py",
+    "tools/__init__.py",
+    "tools/github/__init__.py",
+    "tools/github/create_repo.py"
   ]
 }
