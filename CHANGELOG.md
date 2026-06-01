@@ -18,3 +18,4 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - Phase 1 NestJS + TypeScript backend decision and initial monorepo scaffold.
 - GitHub Actions CI workflow for tests, API typecheck, and API build.
 - ADR-007 for JWT, tenant-scoped RBAC, Policy Guard, and sensitive action authorization.
+- ADR-008 for PostgreSQL-first migrations and the Kysely/node-postgres query layer strategy.

@@ -12,7 +12,9 @@ primary_database: PostgreSQL
 # Postgres Repositories
 
 ## Objetivo
-Este documento guía servicios backend con casos de uso, puertos, adaptadores, dominio, PostgreSQL, eventos y seguridad.
+Definir cómo los repositorios de infraestructura hablan con PostgreSQL sin contaminar dominio ni casos de uso.
+
+La decisión vigente está en `ADR-008`: PostgreSQL manda; Kysely y node-postgres ayudan desde infraestructura.
 
 ## Alcance
 Este documento pertenece a **19_BACKEND** y forma parte del paquete documental maestro de AURION. Su función es impedir improvisación, alinear a agentes IA y humanos, y mantener una ejecución profesional.
@@ -22,6 +24,38 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 - PostgreSQL es la fuente principal de verdad.
 - Los controladores no contienen lógica de negocio.
 - Toda acción crítica debe ser auditable, idempotente y autorizada.
+- Domain must not import Kysely, node-postgres, NestJS, DTOs ni modelos de persistencia.
+- Los casos de uso dependen de puertos; los adaptadores implementan esos puertos con PostgreSQL.
+- Kysely es la opción por defecto para consultas tipadas.
+- node-postgres es el driver/base de conexión bajo Kysely.
+- raw SQL escape hatch está permitido cuando PostgreSQL necesita control explícito.
+
+## Boundary de repositorios
+
+| Capa | Puede conocer PostgreSQL | Puede conocer Kysely |
+|------|--------------------------|----------------------|
+| Domain | No | No |
+| Application use cases | No | No |
+| Ports/interfaces | No | No |
+| Infrastructure adapters | Sí | Sí |
+| Tests de integración DB | Sí | Sí |
+
+## Reglas de implementación
+
+- Mapear filas de PostgreSQL a objetos de dominio dentro del adaptador.
+- No devolver filas crudas desde casos de uso.
+- No esconder queries críticas detrás de métodos genéricos tipo `save(any)`.
+- Toda query de tenant debe filtrar por `tenant_id` salvo excepción documentada.
+- Usar transacciones para cambios que combinen conversación, tool execution y audit trail.
+- Usar SQL directo para locks, índices especializados, JSONB, pgvector, reporting complejo o performance crítica.
+
+## Antipatrones específicos
+
+- Repositorio que permite leer datos sin `tenant_id`.
+- Entidad de dominio decorada con anotaciones de persistencia.
+- Migración generada que nadie revisa.
+- `synchronize: true`, schema push automático o auto-migrate al arrancar la API.
+- ORM decidiendo relaciones sin ADR ni revisión de datos.
 
 ## Directrices específicas
 - Mantener lenguaje claro, operativo y verificable.
@@ -57,6 +91,8 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 - `00_GOVERNANCE/vision.md`
 - `02_PRODUCT/prd.md`
 - `03_ARCHITECTURE/architecture.md`
+- `03_ARCHITECTURE/adr/ADR-008-postgresql-migrations-query-layer.md`
+- `19_BACKEND/migrations.md`
 - `08_DEVELOPMENT/agent.md`
 - `11_TESTING/testing-strategy.md`
 
