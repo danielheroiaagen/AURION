@@ -20,3 +20,4 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - ADR-007 for JWT, tenant-scoped RBAC, Policy Guard, and sensitive action authorization.
 - ADR-008 for PostgreSQL-first migrations and the Kysely/node-postgres query layer strategy.
 - ADR-009 for OpenAPI-first REST MVP API contracts.
+- Executable PostgreSQL MVP core schema migration with reversible `up/down` files.

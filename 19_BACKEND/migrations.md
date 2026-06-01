@@ -43,10 +43,23 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 
 ```text
 database/
+  README.md
   migrations/
-    2026-06-01-0001-create-tenants.up.sql
-    2026-06-01-0001-create-tenants.down.sql
+    2026-06-01-0001-create-mvp-core.up.sql
+    2026-06-01-0001-create-mvp-core.down.sql
 ```
+
+## Migración MVP actual
+
+La primera migración ejecutable crea el núcleo mínimo alineado con `ADR-007`, `ADR-008` y `ADR-009`:
+
+- `tenants`
+- `users`
+- `tenant_memberships`
+- `knowledge_documents`
+- `voice_sessions`
+- `controlled_actions`
+- `audit_events`
 
 ## Checklist para cada migración
 
