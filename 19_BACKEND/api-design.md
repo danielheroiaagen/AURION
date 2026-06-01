@@ -9,10 +9,12 @@ architecture: Hexagonal Architecture + Clean Architecture
 primary_database: PostgreSQL
 ---
 
-# Api Design
+# API Design
 
 ## Objetivo
-Este documento guía servicios backend con casos de uso, puertos, adaptadores, dominio, PostgreSQL, eventos y seguridad.
+Definir la superficie API del MVP sin improvisar endpoints mientras crece el backend.
+
+La decisión vigente está en `ADR-009`: contratos **OpenAPI-first REST**, pequeños, tenant-scoped y alineados con el Voice Agent SaaS Core.
 
 ## Alcance
 Este documento pertenece a **19_BACKEND** y forma parte del paquete documental maestro de AURION. Su función es impedir improvisación, alinear a agentes IA y humanos, y mantener una ejecución profesional.
@@ -22,6 +24,41 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 - PostgreSQL es la fuente principal de verdad.
 - Los controladores no contienen lógica de negocio.
 - Toda acción crítica debe ser auditable, idempotente y autorizada.
+- Todo endpoint de cliente debe validar `tenant_id`.
+- Todo contrato se diseña antes de implementar controladores.
+- Cada endpoint protegido debe respetar `ADR-007`.
+- Cada endpoint persistente debe respetar `ADR-008`.
+
+## Contratos MVP
+
+| Grupo | Endpoint base | Qué resuelve | Riesgo principal |
+|-------|---------------|--------------|------------------|
+| Tenants | `/v1/tenants` | Configuración de empresas cliente. | Cross-tenant access. |
+| Users | `/v1/users` | Usuarios humanos del tenant. | Escalada de permisos. |
+| Memberships | `/v1/memberships` | Roles por tenant. | Rol global accidental. |
+| Knowledge | `/v1/knowledge-documents` | Documentos para la base de conocimiento. | Publicar conocimiento incorrecto. |
+| Voice | `/v1/voice-sessions` | voice sessions, transcript, summary y outcome. | Perder evidencia conversacional. |
+| Actions | `/v1/actions` | controlled actions ejecutadas por humano o Voice Agent. | Acción sin autorización/audit. |
+| Audit | `/v1/audit-events` | Lectura de eventos de seguridad y operación. | Exposición de evidencia sensible. |
+
+## Boundary de implementación
+
+| Capa | Responsabilidad |
+|------|-----------------|
+| Controller | Validar transporte HTTP, DTOs y auth mínima. |
+| Application use case | Ejecutar intención del negocio. |
+| Policy Guard | Autorizar actor + acción + recurso + `tenant_id`. |
+| Domain | Reglas centrales sin depender de NestJS. |
+| Infrastructure | Persistencia, audit log, integraciones y queries. |
+
+## Reglas de contrato
+
+- El contrato público usa `/v1`.
+- Los IDs externos deben ser estables y no filtrar implementación interna.
+- Las acciones mutantes deben declarar idempotencia.
+- Las respuestas de error deben incluir `correlation_id`.
+- La documentación OpenAPI debe ser revisable en PR antes de ampliar endpoints.
+- Los endpoints de Voice Agent nunca deben saltarse permisos por ser “máquina”.
 
 ## Directrices específicas
 - Mantener lenguaje claro, operativo y verificable.
@@ -57,6 +94,8 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 - `00_GOVERNANCE/vision.md`
 - `02_PRODUCT/prd.md`
 - `03_ARCHITECTURE/architecture.md`
+- `03_ARCHITECTURE/adr/ADR-009-mvp-api-contracts.md`
+- `19_BACKEND/rest-api-standards.md`
 - `08_DEVELOPMENT/agent.md`
 - `11_TESTING/testing-strategy.md`
 
