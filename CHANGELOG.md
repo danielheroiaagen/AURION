@@ -21,3 +21,4 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - ADR-008 for PostgreSQL-first migrations and the Kysely/node-postgres query layer strategy.
 - ADR-009 for OpenAPI-first REST MVP API contracts.
 - Executable PostgreSQL MVP core schema migration with reversible `up/down` files.
+- Phase 1 hardening safeguards: tenant-safe user attribution constraints, production-safe Swagger exposure, global request validation, npm 11 CI consistency, and explicit PostgreSQL 15+ migration target.

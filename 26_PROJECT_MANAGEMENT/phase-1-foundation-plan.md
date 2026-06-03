@@ -3,7 +3,7 @@ project: AURION
 document: Phase 1 Foundation Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: active
+status: ready-for-remote-closure
 created_at: 2026-06-01
 ---
 
@@ -46,17 +46,36 @@ Chain strategy: pending
 - [x] Node dependencies installed and locked.
 - [x] API build/typecheck commands pass.
 - [x] CI workflow added.
+- [x] Phase 1 hardening review completed locally.
+- [x] Tenant-safe user attribution constraints added to MVP schema.
+- [x] Production-safe Swagger exposure added.
+- [x] Global request validation baseline added.
+- [x] npm 11 CI consistency added.
 
 ## CI gates
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` runs:
 
-1. `npm ci`
-2. `npm test`
-3. `npm --workspace @aurion/api run typecheck`
-4. `npm --workspace @aurion/api run build`
+1. `npm install -g npm@11`
+2. `npm --version`
+3. `npm ci`
+4. `npm test`
+5. `npm --workspace @aurion/api run typecheck`
+6. `npm --workspace @aurion/api run build`
 
 Branch protection should require the `verify` job after this workflow is merged or active on `main`.
+
+## Closure evidence
+
+Phase 1 local verification passed on branch `phase-1/nestjs-foundation` at commit `56a647d chore: harden phase 1 foundation safeguards`:
+
+- [x] `npm ci` completed with 0 vulnerabilities.
+- [x] `npm test` passed: 28 tests.
+- [x] `npm --workspace @aurion/api run typecheck` passed.
+- [x] `npm --workspace @aurion/api run build` passed.
+- [x] Fresh hardening review returned PASS.
+
+Remote GitHub CI and PR #7 cannot be confirmed from the current local environment because the private repository returns `404` without authenticated GitHub access and `gh` is not installed locally. Final closure requires confirming the remote `verify` job on PR #7.
 
 ## Repository protection status
 
@@ -72,7 +91,7 @@ Decision: keep the repository private for now and enforce review discipline thro
 
 ## Next step
 
-Complete Phase 1 hardening review: tenant-safe attribution constraints, production-safe Swagger exposure, global request validation, npm 11 CI consistency, and explicit follow-up tracking for rate limiting, security headers, and JSONB redaction.
+Confirm PR #7 remote CI on GitHub, then merge or formally approve Phase 1 closure.
 
 ## Phase 1 hardening follow-up
 
