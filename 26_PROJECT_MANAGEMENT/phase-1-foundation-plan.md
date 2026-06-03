@@ -24,9 +24,9 @@ Backend foundation: **NestJS + TypeScript**.
 | Chained PRs recommended | No for foundation docs/scaffold; reassess before auth/DB work |
 | Suggested split | Foundation scaffold → auth/RBAC → DB schema → CI |
 
-Decision needed before apply: No  
-Chained PRs recommended: No  
-Chain strategy: pending  
+Decision needed before apply: No
+Chained PRs recommended: No
+Chain strategy: pending
 400-line budget risk: Medium
 
 ## Work units

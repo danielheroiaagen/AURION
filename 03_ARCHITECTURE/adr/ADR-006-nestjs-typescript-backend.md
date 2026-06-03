@@ -49,4 +49,3 @@ The original architecture allowed either NestJS or FastAPI. Keeping that open wo
 
 - NestJS official docs: https://docs.nestjs.com/
 - NestJS OpenAPI docs: https://docs.nestjs.com/openapi/introduction
-
