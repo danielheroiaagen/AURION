@@ -30,3 +30,11 @@ Antes de modificar cualquier parte relacionada con esta carpeta, el agente debe 
 
 ## Regla
 Si un documento no cubre una decisión necesaria, crear una propuesta y actualizar la documentación antes de implementar.
+
+## Decisión Phase 1
+
+El backend MVP usa **NestJS + TypeScript**.
+
+Referencia: `03_ARCHITECTURE/adr/ADR-006-nestjs-typescript-backend.md`.
+
+Regla crítica: NestJS no entra en el dominio. El framework se limita a interfaces, módulos de wiring y adaptadores.

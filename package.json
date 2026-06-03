@@ -1,0 +1,21 @@
+{
+  "name": "aurion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AURION Voice Agent SaaS Core monorepo.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.tools.test_create_github_repo",
+    "test:project": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema",
+    "test:tools": "python -m unittest tests.tools.test_create_github_repo",
+    "lint": "echo \"lint not configured yet\"",
+    "typecheck": "echo \"typecheck not configured yet\""
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=11.0.0"
+  }
+}

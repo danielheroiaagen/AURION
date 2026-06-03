@@ -40,10 +40,10 @@ logs/
 Thumbs.db
 .idea/
 .vscode/
+.atl/
 
 # Local databases / dumps
 *.sqlite
 *.db
 *.dump
 *.bak
-
