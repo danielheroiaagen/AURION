@@ -40,6 +40,18 @@ class Phase1FoundationTests(unittest.TestCase):
         self.assertIn("NestJS + TypeScript", text)
         self.assertIn("Review Workload Forecast", text)
 
+    def test_api_bootstrap_sets_security_baseline(self):
+        main = ROOT / "apps" / "api" / "src" / "main.ts"
+
+        text = main.read_text(encoding="utf-8")
+        self.assertIn("ValidationPipe", text)
+        self.assertIn("whitelist: true", text)
+        self.assertIn("forbidNonWhitelisted: true", text)
+        self.assertIn("transform: true", text)
+        self.assertIn("process.env.NODE_ENV !== 'production'", text)
+        self.assertIn("process.env.SWAGGER_ENABLED === 'true'", text)
+        self.assertIn("app.setGlobalPrefix('api/v1')", text)
+
 
 if __name__ == "__main__":
     unittest.main()

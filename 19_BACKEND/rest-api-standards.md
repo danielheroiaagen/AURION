@@ -31,7 +31,7 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 
 ## Versionado
 
-- Usar prefijo `/v1`.
+- Usar prefijo `/api/v1`, alineado con el bootstrap NestJS actual.
 - No romper contratos sin ADR o plan de compatibilidad.
 - Los cambios breaking requieren nueva versión o migración documentada.
 
@@ -66,7 +66,7 @@ Las listas usan **cursor pagination**:
 
 ## Idempotencia
 
-- `POST /v1/actions` y otras operaciones mutantes reintentables aceptan `Idempotency-Key`.
+- `POST /api/v1/actions` y otras operaciones mutantes reintentables aceptan `Idempotency-Key`.
 - La misma key con el mismo payload debe producir el mismo resultado lógico.
 - La misma key con payload distinto debe devolver error de conflicto.
 

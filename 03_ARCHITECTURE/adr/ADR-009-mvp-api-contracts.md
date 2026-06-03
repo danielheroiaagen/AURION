@@ -18,12 +18,12 @@ The first API surface is intentionally small, tenant-scoped, and built around th
 
 | Group | Base path | Purpose |
 |-------|-----------|---------|
-| Tenant administration | `/v1/tenants` | Configure customer company context and settings. |
-| Users and memberships | `/v1/users`, `/v1/memberships` | Manage tenant-scoped users, roles, and access. |
-| Knowledge base | `/v1/knowledge-documents` | Upload, review, and publish knowledge used by the agent. |
-| Voice sessions | `/v1/voice-sessions` | Track realtime conversation sessions, transcripts, summaries, and outcomes. |
-| Controlled actions | `/v1/actions` | Request, authorize, execute, and audit bounded tool actions. |
-| Audit | `/v1/audit-events` | Read security and operational evidence. |
+| Tenant administration | `/api/v1/tenants` | Configure customer company context and settings. |
+| Users and memberships | `/api/v1/users`, `/api/v1/memberships` | Manage tenant-scoped users, roles, and access. |
+| Knowledge base | `/api/v1/knowledge-documents` | Upload, review, and publish knowledge used by the agent. |
+| Voice sessions | `/api/v1/voice-sessions` | Track realtime conversation sessions, transcripts, summaries, and outcomes. |
+| Controlled actions | `/api/v1/actions` | Request, authorize, execute, and audit bounded tool actions. |
+| Audit | `/api/v1/audit-events` | Read security and operational evidence. |
 
 ## Contract rules
 

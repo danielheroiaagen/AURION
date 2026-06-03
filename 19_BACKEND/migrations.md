@@ -22,6 +22,7 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 ## Decisiones no negociables
 - Arquitectura hexagonal y Clean Architecture son obligatorias.
 - PostgreSQL es la fuente principal de verdad.
+- La versión objetivo mínima es PostgreSQL 15 para soportar constraints usadas por el schema MVP.
 - Los controladores no contienen lógica de negocio.
 - Toda acción crítica debe ser auditable, idempotente y autorizada.
 - Las migraciones viven en `database/migrations`.
@@ -38,6 +39,12 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 | `up/down` explícito | Permite razonar despliegue, rollback y riesgo operativo. |
 | Sin magia de ORM | La arquitectura no puede depender de sincronización automática. |
 | CI antes de producción | Las migraciones son código crítico. |
+
+## Versión PostgreSQL objetivo
+
+La línea base de AURION es **PostgreSQL 15+**.
+
+Motivo: el schema MVP usa claves foráneas compuestas con `ON DELETE SET NULL (column)` para que, al eliminar una membresía, se preserve el `tenant_id` del registro auditado y se limpie solo la columna de usuario atribuida.
 
 ## Estructura esperada
 
@@ -65,6 +72,7 @@ La primera migración ejecutable crea el núcleo mínimo alineado con `ADR-007`,
 
 - [ ] ¿Incluye `tenant_id` si la tabla pertenece a clientes?
 - [ ] ¿Tiene claves primarias, foreign keys y constraints explícitos?
+- [ ] ¿Las referencias a usuarios en tablas tenant-owned validan `(tenant_id, user_id)` contra memberships?
 - [ ] ¿Tiene índices para accesos esperados?
 - [ ] ¿Considera audit trail cuando la tabla afecta acciones sensibles?
 - [ ] ¿La reversión `down` es segura o documenta por qué no lo es?

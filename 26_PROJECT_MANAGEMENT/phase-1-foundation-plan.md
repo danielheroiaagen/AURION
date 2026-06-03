@@ -72,4 +72,12 @@ Decision: keep the repository private for now and enforce review discipline thro
 
 ## Next step
 
-Install dependencies and turn the placeholder NestJS scaffold into a fully buildable API workspace.
+Complete Phase 1 hardening review: tenant-safe attribution constraints, production-safe Swagger exposure, global request validation, npm 11 CI consistency, and explicit follow-up tracking for rate limiting, security headers, and JSONB redaction.
+
+## Phase 1 hardening follow-up
+
+These risks remain intentionally out of this focused work unit to avoid large dependency churn before endpoint implementation:
+
+- Add rate limiting once public auth boundaries and endpoint shapes are implemented.
+- Add security headers middleware after confirming the deployment proxy/header strategy.
+- Define JSONB redaction rules before storing sensitive request or tool payloads beyond MVP placeholders.

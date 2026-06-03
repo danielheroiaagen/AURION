@@ -33,13 +33,13 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 
 | Grupo | Endpoint base | Qué resuelve | Riesgo principal |
 |-------|---------------|--------------|------------------|
-| Tenants | `/v1/tenants` | Configuración de empresas cliente. | Cross-tenant access. |
-| Users | `/v1/users` | Usuarios humanos del tenant. | Escalada de permisos. |
-| Memberships | `/v1/memberships` | Roles por tenant. | Rol global accidental. |
-| Knowledge | `/v1/knowledge-documents` | Documentos para la base de conocimiento. | Publicar conocimiento incorrecto. |
-| Voice | `/v1/voice-sessions` | voice sessions, transcript, summary y outcome. | Perder evidencia conversacional. |
-| Actions | `/v1/actions` | controlled actions ejecutadas por humano o Voice Agent. | Acción sin autorización/audit. |
-| Audit | `/v1/audit-events` | Lectura de eventos de seguridad y operación. | Exposición de evidencia sensible. |
+| Tenants | `/api/v1/tenants` | Configuración de empresas cliente. | Cross-tenant access. |
+| Users | `/api/v1/users` | Usuarios humanos del tenant. | Escalada de permisos. |
+| Memberships | `/api/v1/memberships` | Roles por tenant. | Rol global accidental. |
+| Knowledge | `/api/v1/knowledge-documents` | Documentos para la base de conocimiento. | Publicar conocimiento incorrecto. |
+| Voice | `/api/v1/voice-sessions` | voice sessions, transcript, summary y outcome. | Perder evidencia conversacional. |
+| Actions | `/api/v1/actions` | controlled actions ejecutadas por humano o Voice Agent. | Acción sin autorización/audit. |
+| Audit | `/api/v1/audit-events` | Lectura de eventos de seguridad y operación. | Exposición de evidencia sensible. |
 
 ## Boundary de implementación
 
@@ -53,7 +53,7 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 
 ## Reglas de contrato
 
-- El contrato público usa `/v1`.
+- El contrato público usa `/api/v1`.
 - Los IDs externos deben ser estables y no filtrar implementación interna.
 - Las acciones mutantes deben declarar idempotencia.
 - Las respuestas de error deben incluir `correlation_id`.

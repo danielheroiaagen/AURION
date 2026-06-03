@@ -16,7 +16,7 @@ AURION Phase 1 will use **NestJS + TypeScript** for the backend foundation.
 
 The MVP is a Voice Agent SaaS Core with multi-tenant administration, knowledge ingestion, realtime voice sessions, controlled tool execution, audit trails, and metrics.
 
-The original architecture allowed either NestJS or FastAPI. Keeping that open would make the first implementation phase ambiguous.
+The original architecture considered FastAPI, but Phase 1 has closed that fork: the MVP backend core is NestJS + TypeScript.
 
 ## Options considered
 

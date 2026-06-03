@@ -64,6 +64,19 @@ class ExecutableDatabaseSchemaTests(unittest.TestCase):
         self.assertIn("FOREIGN KEY (tenant_id, voice_session_id)", sql)
         self.assertIn("REFERENCES voice_sessions(tenant_id, id)", sql)
 
+    def test_tenant_owned_user_attribution_requires_same_tenant_membership(self):
+        sql = UP.read_text(encoding="utf-8")
+
+        for column in [
+            "created_by_user_id",
+            "started_by_user_id",
+            "actor_user_id",
+            "approved_by_user_id",
+        ]:
+            self.assertIn(f"FOREIGN KEY (tenant_id, {column})", sql)
+            self.assertIn("REFERENCES tenant_memberships(tenant_id, user_id)", sql)
+            self.assertIn(f"ON DELETE SET NULL ({column})", sql)
+
     def test_down_migration_reverses_core_schema(self):
         sql = DOWN.read_text(encoding="utf-8")
 

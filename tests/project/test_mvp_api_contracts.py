@@ -22,10 +22,10 @@ class MvpApiContractDocumentationTests(unittest.TestCase):
 
         text = api_design.read_text(encoding="utf-8")
         self.assertIn("ADR-009", text)
-        self.assertIn("/v1/tenants", text)
-        self.assertIn("/v1/knowledge-documents", text)
-        self.assertIn("/v1/voice-sessions", text)
-        self.assertIn("/v1/actions", text)
+        self.assertIn("/api/v1/tenants", text)
+        self.assertIn("/api/v1/knowledge-documents", text)
+        self.assertIn("/api/v1/voice-sessions", text)
+        self.assertIn("/api/v1/actions", text)
         self.assertIn("tenant_id", text)
 
     def test_rest_standards_define_errors_pagination_and_idempotency(self):

@@ -2,6 +2,8 @@
 
 La base de datos de AURION sigue `ADR-008`: PostgreSQL es la fuente de verdad y las migraciones son SQL-first.
 
+Versión objetivo: **PostgreSQL 15+**. La migración MVP usa `ON DELETE SET NULL (column)` en claves foráneas compuestas para preservar `tenant_id` y limpiar solo la atribución de usuario cuando se elimina una membresía.
+
 ## Quick path
 
 Aplicar una migración:
@@ -23,6 +25,7 @@ psql "$DATABASE_URL" -f database/migrations/2026-06-01-0001-create-mvp-core.down
 - No usamos auto-sync ni schema push desde la API.
 - Todo cambio se revisa en PR como código crítico.
 - Las tablas de cliente deben tener `tenant_id`.
+- Las atribuciones de usuario en datos tenant-owned deben validar `(tenant_id, user_id)` contra `tenant_memberships`.
 
 ## Current migrations
 

@@ -17,6 +17,8 @@ class CiWorkflowTests(unittest.TestCase):
         self.assertIn("npm --workspace @aurion/api run typecheck", text)
         self.assertIn("npm --workspace @aurion/api run build", text)
         self.assertIn("node-version: 22", text)
+        self.assertIn("npm install -g npm@11", text)
+        self.assertIn("npm --version", text)
 
 
 if __name__ == "__main__":

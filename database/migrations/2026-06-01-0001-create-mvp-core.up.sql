@@ -51,7 +51,10 @@ CREATE TABLE knowledge_documents (
   created_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   published_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (tenant_id, created_by_user_id)
+    REFERENCES tenant_memberships(tenant_id, user_id)
+    ON DELETE SET NULL (created_by_user_id)
 );
 
 CREATE INDEX knowledge_documents_tenant_status_idx
@@ -73,6 +76,9 @@ CREATE TABLE voice_sessions (
   ended_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (tenant_id, started_by_user_id)
+    REFERENCES tenant_memberships(tenant_id, user_id)
+    ON DELETE SET NULL (started_by_user_id),
   UNIQUE (tenant_id, id)
 );
 
@@ -99,6 +105,12 @@ CREATE TABLE controlled_actions (
   correlation_id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (tenant_id, actor_user_id)
+    REFERENCES tenant_memberships(tenant_id, user_id)
+    ON DELETE SET NULL (actor_user_id),
+  FOREIGN KEY (tenant_id, approved_by_user_id)
+    REFERENCES tenant_memberships(tenant_id, user_id)
+    ON DELETE SET NULL (approved_by_user_id),
   FOREIGN KEY (tenant_id, voice_session_id) REFERENCES voice_sessions(tenant_id, id) ON DELETE RESTRICT,
   UNIQUE (tenant_id, idempotency_key)
 );
@@ -120,7 +132,10 @@ CREATE TABLE audit_events (
   outcome TEXT NOT NULL CHECK (outcome IN ('allowed', 'denied', 'succeeded', 'failed')),
   correlation_id TEXT NOT NULL,
   metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (tenant_id, actor_user_id)
+    REFERENCES tenant_memberships(tenant_id, user_id)
+    ON DELETE SET NULL (actor_user_id)
 );
 
 CREATE INDEX audit_events_tenant_created_idx
