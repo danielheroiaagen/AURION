@@ -102,5 +102,16 @@ Este documento pertenece a **19_BACKEND** y forma parte del paquete documental m
 - `08_DEVELOPMENT/agent.md`
 - `11_TESTING/testing-strategy.md`
 
+## Implementación MVP (Phase 2)
+
+La frontera está implementada en `apps/api/src/modules/auth` siguiendo capas hexagonales:
+
+- `domain/`: roles, catálogo de permisos, matriz de permisos y actor (TypeScript puro, sin NestJS).
+- `application/policy.service.ts`: punto de decisión único, deny-by-default, con puerto de auditoría.
+- `infrastructure/`: verificador JWT HS256 (`jwt.verifier.ts`), `JwtAuthGuard`, `PolicyGuard`, sink de auditoría.
+- `decorators/`: `@Public`, `@RequirePermission`, `@CurrentActor`.
+
+Los guards se registran globalmente: toda ruta exige identidad válida salvo `@Public()`, y las rutas protegidas pasan además por el Policy Guard. El endurecimiento del borde HTTP está en `ADR-010` y la protección de datos en reposo en `ADR-011`.
+
 ## Estado
 Documento vivo. Debe actualizarse cuando cambie producto, arquitectura, mercado, seguridad o proceso operativo.

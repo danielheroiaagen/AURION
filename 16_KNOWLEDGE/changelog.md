@@ -14,6 +14,25 @@ primary_database: PostgreSQL
 
 Historial de cambios.
 
+## [Unreleased] — Phase 2: Auth & Security Hardening (2026-06-10)
+
+### Added
+- JWT authentication, tenant-scoped RBAC, and deny-by-default Policy Guard in the
+  API (`ADR-007`), wired as global guards.
+- Database security migration `0002`: Row-Level Security on all tenant-owned
+  tables and append-only `audit_events`.
+- HTTP edge hardening (`ADR-010`): Helmet headers, CORS allowlist, rate limiting,
+  Problem Details exception filter, correlation ids.
+- CI security: `npm audit` gate, gitleaks secret scan, CodeQL, Dependabot, and
+  SHA-pinned GitHub Actions.
+- ADR-010 (edge security), ADR-011 (PII protection at rest), phase-2 plan,
+  `.env.example`, and Jest + Python test coverage.
+
+### Security
+- Closed the Phase 1 hardening findings: tenant isolation enforced at the DB,
+  audit immutability, edge hardening, and supply-chain scanning.
+- API now fails closed without a strong `JWT_SECRET`.
+
 ## Alcance
 
 Este documento aplica a AURION completo, incluyendo plataforma SaaS, agentes de voz, avatar, Hermes Agent workforce, datos, infraestructura y operaciones.
