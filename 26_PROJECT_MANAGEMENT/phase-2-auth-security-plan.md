@@ -60,8 +60,8 @@ Implement, on top of the Phase 1 foundation:
 - [x] CI runs dependency audit, secret scanning, and CodeQL with SHA-pinned
       actions; Dependabot configured.
 - [x] Jest unit tests and Python contract tests cover the above.
-- [ ] `npm ci`, `npm test`, `npm run test:api`, typecheck, and build all pass
-      locally and in CI with 0 vulnerabilities.
+- [x] `npm ci`, `npm test`, `npm run test:api`, typecheck, and build all pass
+      locally with 0 vulnerabilities (CI parity pending push).
 
 ## CI gates
 
@@ -85,4 +85,17 @@ The API now requires security configuration. See `.env.example`:
 
 ## Closure evidence
 
-To be appended after local and CI verification (mirrors the Phase 1 plan format).
+Local verification passed on branch `phase-2/auth-security` (2026-06-10):
+
+- [x] `npm install` completed with **0 vulnerabilities** (613 packages).
+- [x] `npm test` passed: **51** Python contract tests.
+- [x] `npm run test:api` passed: **36** Jest unit tests (3 suites).
+- [x] `npm --workspace @aurion/api run typecheck` passed.
+- [x] `npm --workspace @aurion/api run build` passed; `dist/` contains no spec files.
+- [x] `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+- [x] Runtime smoke test: API fails closed without `JWT_SECRET`; `/api/v1/health`
+      returns 200 with Helmet headers and a correlation id; unknown routes return
+      a Problem Details `application/problem+json` 404.
+
+Remaining for closure: push the branch, confirm CI (verify + security + CodeQL),
+open the PR, and append CI run links.
