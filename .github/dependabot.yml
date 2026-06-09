@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # JavaScript/TypeScript dependencies (npm workspaces resolved from root lockfile).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    open-pull-requests-limit: 10
+    groups:
+      nestjs:
+        patterns:
+          - '@nestjs/*'
+      dev-tooling:
+        dependency-type: development
+
+  # GitHub Actions: keep pinned action SHAs current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    open-pull-requests-limit: 5
