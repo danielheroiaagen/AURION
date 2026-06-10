@@ -15,6 +15,7 @@ import { PolicyService } from '../../src/modules/auth/application/policy.service
 import type { AuthenticatedActor } from '../../src/modules/auth/domain/actor';
 import { ControlledActionsService } from '../../src/modules/actions/application/controlled-actions.service';
 import { KyselyControlledActionsRepository } from '../../src/modules/actions/infrastructure/kysely-controlled-actions.repository';
+import { NoopDispatcher } from '../../src/modules/actions/infrastructure/noop.dispatcher';
 import { VoiceSessionsService } from '../../src/modules/voice-sessions/application/voice-sessions.service';
 import { KyselyVoiceSessionsRepository } from '../../src/modules/voice-sessions/infrastructure/kysely-voice-sessions.repository';
 
@@ -136,6 +137,7 @@ describeIntegration('voice sessions & controlled actions against PostgreSQL', ()
     sessions = new VoiceSessionsService(new KyselyVoiceSessionsRepository(scoped, crypto));
     actions = new ControlledActionsService(
       new KyselyControlledActionsRepository(scoped, crypto),
+      new NoopDispatcher(),
       new PolicyService({ record: () => undefined }),
     );
   });
@@ -204,7 +206,7 @@ describeIntegration('voice sessions & controlled actions against PostgreSQL', ()
 
     // Voice agent cannot execute before approval.
     await expect(
-      actions.execute(agentActor, TENANT_A, requested.id, null, 'itest-flow-1'),
+      actions.execute(agentActor, TENANT_A, requested.id, 'itest-flow-1'),
     ).rejects.toBeInstanceOf(ConflictException);
 
     // A human supervisor (not the requester) approves.
@@ -217,16 +219,15 @@ describeIntegration('voice sessions & controlled actions against PostgreSQL', ()
     expect(approved.status).toBe('approved');
     expect(approved.approvedByUserId).toBe(SUPERVISOR_USER);
 
-    // Now the agent executes; the policy receives the recorded approval.
-    const executed = await actions.execute(
-      agentActor,
-      TENANT_A,
-      requested.id,
-      { ticketId: 'T-1001' },
-      'itest-flow-1',
-    );
+    // Now the agent executes; the policy receives the recorded approval and
+    // the result evidence comes from the dispatcher (ADR-014), not the client.
+    const executed = await actions.execute(agentActor, TENANT_A, requested.id, 'itest-flow-1');
     expect(executed.status).toBe('executed');
-    expect(executed.resultPayload).toEqual({ ticketId: 'T-1001' });
+    expect(executed.resultPayload).toMatchObject({
+      dispatch_mode: 'noop',
+      action_id: requested.id,
+      action_type: 'ticket.create',
+    });
 
     // Raw columns hold ciphertext envelopes, not business data.
     const raw = await admin
@@ -237,7 +238,7 @@ describeIntegration('voice sessions & controlled actions against PostgreSQL', ()
     expect((raw.request_payload as { ciphertext?: string }).ciphertext).toMatch(/^enc:v1:itest:/);
     expect(JSON.stringify(raw.request_payload)).not.toContain('follow-up');
     expect((raw.result_payload as { ciphertext?: string }).ciphertext).toMatch(/^enc:v1:itest:/);
-    expect(JSON.stringify(raw.result_payload)).not.toContain('T-1001');
+    expect(JSON.stringify(raw.result_payload)).not.toContain('dispatch_mode');
   });
 
   it('Idempotency-Key replay returns the original action; divergent replay conflicts', async () => {

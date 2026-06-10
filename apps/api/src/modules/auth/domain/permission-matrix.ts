@@ -24,6 +24,8 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
   tenant_admin: new Set<Permission>([
     'tenant:read',
     'tenant:settings:update',
+    'user:read',
+    'user:manage',
     'conversation:read',
     'conversation:review',
     'conversation:write',
@@ -39,6 +41,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
 
   supervisor: new Set<Permission>([
     'tenant:read',
+    'user:read',
     'conversation:read',
     'conversation:review',
     'knowledge:read',
@@ -58,6 +61,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
 
   auditor: new Set<Permission>([
     'tenant:read',
+    'user:read',
     'conversation:read',
     'conversation:review',
     'knowledge:read',

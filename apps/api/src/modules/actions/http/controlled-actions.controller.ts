@@ -21,7 +21,6 @@ import { RequirePermission } from '../../auth/decorators/require-permission.deco
 import type { AuthenticatedActor } from '../../auth/domain/actor';
 import { ControlledActionsService } from '../application/controlled-actions.service';
 import {
-  ExecuteActionDto,
   ListActionsQueryDto,
   RequestActionDto,
   requireIdempotencyKey,
@@ -98,22 +97,16 @@ export class ControlledActionsController {
   @Post(':id/execute')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Execute an action; the policy re-authorizes with the recorded approval.',
+    summary:
+      'Execute an action: the policy re-authorizes with the recorded approval and the result is produced by the dispatcher (ADR-014), never by the client.',
   })
   async execute(
     @CurrentActor() actor: AuthenticatedActor,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: ExecuteActionDto,
     @CorrelationId() correlationId: string,
   ): Promise<ControlledActionResponse> {
     return toControlledActionResponse(
-      await this.actions.execute(
-        actor,
-        requireActorTenant(actor),
-        id,
-        body.result_payload ?? null,
-        correlationId,
-      ),
+      await this.actions.execute(actor, requireActorTenant(actor), id, correlationId),
     );
   }
 

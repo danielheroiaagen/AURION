@@ -9,6 +9,8 @@
 export const PERMISSIONS = [
   'tenant:read',
   'tenant:settings:update',
+  'user:read',
+  'user:manage',
   'conversation:read',
   'conversation:review',
   'conversation:write',
@@ -46,6 +48,7 @@ export function isTenantScoped(permission: Permission): boolean {
  */
 export const SENSITIVE_PERMISSIONS: ReadonlySet<Permission> = new Set([
   'tenant:settings:update',
+  'user:manage',
   'knowledge:write',
   'tool:execute:calendar.update',
   'tool:execute:ticket.create',
