@@ -25,6 +25,10 @@ const ENV = {
 
 const API = 'http://localhost:3000/api/v1';
 
+// Action ids received over the demo WebSocket are only trusted when they are
+// literally UUIDs — anything else never reaches a request URL.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function mintToken({ sub, role, actorType, hours = 24 }) {
   const b64 = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
   const header = b64({ alg: 'HS256', typ: 'JWT' });
@@ -141,8 +145,8 @@ function conversation(externalId, text) {
       if (event.type === 'session.started') {
         socket.send(JSON.stringify({ type: 'turn.user', text }));
       }
-      if (event.type === 'action.requested') {
-        actionId = event.action_id;
+      if (event.type === 'action.requested' && UUID_RE.test(String(event.action_id))) {
+        actionId = String(event.action_id);
       }
       if (event.type === 'turn.agent') {
         socket.send(JSON.stringify({ type: 'session.end', outcome: 'demo' }));
@@ -174,10 +178,12 @@ async function main() {
 
   // Live workflow data: one executed, one rejected, one awaiting approval.
   const executedId = await conversation('demo-call-1', 'Tengo un problema con mi pedido, abre un ticket');
+  if (!executedId) throw new Error('demo-call-1 did not yield a valid action id');
   await api(`/actions/${executedId}/approve`, { method: 'POST', token: supervisorToken });
   await api(`/actions/${executedId}/execute`, { method: 'POST', token: adminToken });
 
   const rejectedId = await conversation('demo-call-2', 'Quiero cambiar mi cita del jueves');
+  if (!rejectedId) throw new Error('demo-call-2 did not yield a valid action id');
   await api(`/actions/${rejectedId}/reject`, { method: 'POST', token: supervisorToken });
 
   await conversation('demo-call-3', 'Necesito un ticket para una factura duplicada');
