@@ -31,17 +31,6 @@ export class RequestActionDto {
   request_payload!: Record<string, unknown>;
 }
 
-export class ExecuteActionDto {
-  @ApiPropertyOptional({
-    description: 'Tool execution result payload. Encrypted at rest.',
-    type: 'object',
-    additionalProperties: true,
-  })
-  @IsOptional()
-  @IsObject()
-  result_payload?: Record<string, unknown>;
-}
-
 export class ListActionsQueryDto {
   @ApiPropertyOptional({ enum: CONTROLLED_ACTION_STATUSES })
   @IsOptional()

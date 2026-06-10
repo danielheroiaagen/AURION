@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -10,6 +11,10 @@ import type { Page } from '../../../common/pagination/cursor';
 import { PolicyService } from '../../auth/application/policy.service';
 import type { AuthenticatedActor } from '../../auth/domain/actor';
 import { canonicalJson, toolPermission, type ActionType } from '../domain/controlled-action';
+import {
+  ACTION_DISPATCHER,
+  type ActionDispatcherPort,
+} from './action-dispatcher.port';
 import {
   CONTROLLED_ACTIONS_REPOSITORY,
   type ControlledAction,
@@ -41,6 +46,8 @@ export class ControlledActionsService {
   constructor(
     @Inject(CONTROLLED_ACTIONS_REPOSITORY)
     private readonly actions: ControlledActionsRepositoryPort,
+    @Inject(ACTION_DISPATCHER)
+    private readonly dispatcher: ActionDispatcherPort,
     private readonly policy: PolicyService,
   ) {}
 
@@ -160,7 +167,6 @@ export class ControlledActionsService {
     actor: AuthenticatedActor,
     tenantId: string,
     id: string,
-    resultPayload: Record<string, unknown> | null,
     correlationId: string,
   ): Promise<ControlledAction> {
     const action = await this.getById(tenantId, id);
@@ -190,8 +196,32 @@ export class ControlledActionsService {
       throw new ForbiddenException({ message: 'Access denied.', reason: decision.reason });
     }
 
+    // Execution evidence comes from the dispatcher, never the client
+    // (ADR-014). Failures are persisted as `failed` evidence BEFORE the 502
+    // surfaces: the record never depends on the client handling the response.
+    const dispatch = await this.dispatcher.dispatch({
+      actionId: action.id,
+      tenantId,
+      actionType: action.actionType,
+      requestPayload: action.requestPayload,
+      correlationId,
+    });
+
+    if (!dispatch.ok) {
+      const failed = await this.actions.transitionStatus(tenantId, id, expectedStatus, 'failed', {
+        resultPayload: { error: { code: dispatch.errorCode, message: dispatch.message } },
+      });
+      if (!failed) {
+        throw new ConflictException('Action state changed concurrently during dispatch; retry.');
+      }
+      throw new BadGatewayException({
+        message: 'Action dispatch failed.',
+        code: dispatch.errorCode,
+      });
+    }
+
     const updated = await this.actions.transitionStatus(tenantId, id, expectedStatus, 'executed', {
-      resultPayload: resultPayload ?? undefined,
+      resultPayload: dispatch.resultPayload,
     });
     if (!updated) {
       throw new ConflictException('Action state changed concurrently; retry.');

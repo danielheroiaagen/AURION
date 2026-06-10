@@ -49,3 +49,20 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - First real consumers of column encryption: `voice_sessions.summary` and
   controlled-action payloads are AES-256-GCM ciphertext at rest (verified by
   raw-column reads in integration tests).
+- ADR-014 action dispatch port: `POST /actions/:id/execute` now dispatches
+  through `ActionDispatcherPort` (HMAC-signed `HermesHttpDispatcher` or the
+  honest `NoopDispatcher`); execution evidence comes from the dispatcher,
+  dispatch failures persist `failed` + error evidence before surfacing 502.
+- `/api/v1/users` and `/api/v1/memberships` endpoints (last ADR-009 group):
+  tenant-scoped invites through the RLS-protected membership join, role/status
+  administration with self-modification and `platform_owner` assignment
+  banned; `user:read` and `user:manage` permissions.
+- ADR-015 + `05_SECURITY/key-rotation-runbook.md`: encryption key rotation
+  (prepend, sweep, verified retirement, escrow for backups) and the
+  crypto-shredding posture.
+
+### Changed
+
+- **Breaking**: `POST /api/v1/actions/:id/execute` no longer accepts a client
+  `result_payload` (ADR-014) — execution evidence can only originate at the
+  dispatcher boundary.

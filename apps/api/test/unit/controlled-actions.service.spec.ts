@@ -1,7 +1,12 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { BadGatewayException, ConflictException, ForbiddenException } from '@nestjs/common';
 
 import { PolicyService } from '../../src/modules/auth/application/policy.service';
 import type { AuthenticatedActor } from '../../src/modules/auth/domain/actor';
+import type {
+  ActionDispatcherPort,
+  DispatchInput,
+  DispatchResult,
+} from '../../src/modules/actions/application/action-dispatcher.port';
 import type {
   ControlledAction,
   ControlledActionsRepositoryPort,
@@ -137,15 +142,27 @@ describe('controlled action domain', () => {
   });
 });
 
+class FakeDispatcher implements ActionDispatcherPort {
+  result: DispatchResult = { ok: true, resultPayload: { dispatch_mode: 'noop' } };
+  lastInput: DispatchInput | null = null;
+
+  async dispatch(input: DispatchInput): Promise<DispatchResult> {
+    this.lastInput = input;
+    return this.result;
+  }
+}
+
 describe('ControlledActionsService', () => {
   let repo: FakeRepo;
+  let dispatcher: FakeDispatcher;
   let service: ControlledActionsService;
   let policy: PolicyService;
 
   beforeEach(() => {
     repo = new FakeRepo();
+    dispatcher = new FakeDispatcher();
     policy = new PolicyService({ record: () => undefined });
-    service = new ControlledActionsService(repo, policy);
+    service = new ControlledActionsService(repo, dispatcher, policy);
   });
 
   describe('request', () => {
@@ -270,18 +287,43 @@ describe('ControlledActionsService', () => {
   });
 
   describe('execute', () => {
-    it('executes a non-gated action directly from requested', async () => {
+    it('executes a non-gated action with the DISPATCHER result, never client input', async () => {
       repo.byId = action({ approvalRequired: false, status: 'requested' });
       repo.transitionResult = action({ status: 'executed' });
+      dispatcher.result = { ok: true, resultPayload: { ticket_id: 'T-1' } };
 
-      const updated = await service.execute(adminActor, TENANT, ACTION_ID, { ok: true }, 'corr');
+      const updated = await service.execute(adminActor, TENANT, ACTION_ID, 'corr');
       expect(updated.status).toBe('executed');
       expect(repo.lastTransition).toEqual([
         TENANT,
         ACTION_ID,
         'requested',
         'executed',
-        { resultPayload: { ok: true } },
+        { resultPayload: { ticket_id: 'T-1' } },
+      ]);
+      expect(dispatcher.lastInput).toMatchObject({
+        actionId: ACTION_ID,
+        tenantId: TENANT,
+        actionType: 'ticket.create',
+        correlationId: 'corr',
+      });
+    });
+
+    it('persists failed evidence and surfaces 502 when dispatch fails', async () => {
+      repo.byId = action({ approvalRequired: false, status: 'requested' });
+      repo.transitionResult = action({ status: 'failed' });
+      dispatcher.result = { ok: false, errorCode: 'dispatch_timeout', message: 'timed out' };
+
+      await expect(service.execute(adminActor, TENANT, ACTION_ID, 'corr')).rejects.toBeInstanceOf(
+        BadGatewayException,
+      );
+      // The failure was recorded BEFORE the error surfaced (ADR-014).
+      expect(repo.lastTransition).toEqual([
+        TENANT,
+        ACTION_ID,
+        'requested',
+        'failed',
+        { resultPayload: { error: { code: 'dispatch_timeout', message: 'timed out' } } },
       ]);
     });
 
@@ -293,8 +335,9 @@ describe('ControlledActionsService', () => {
         actorUserId: null,
       });
       await expect(
-        service.execute(agentActor, TENANT, ACTION_ID, null, 'corr'),
+        service.execute(agentActor, TENANT, ACTION_ID, 'corr'),
       ).rejects.toBeInstanceOf(ConflictException);
+      expect(dispatcher.lastInput).toBeNull();
     });
 
     it('lets the voice agent execute once a human approval is recorded', async () => {
@@ -307,7 +350,7 @@ describe('ControlledActionsService', () => {
       });
       repo.transitionResult = action({ status: 'executed' });
 
-      const updated = await service.execute(agentActor, TENANT, ACTION_ID, null, 'corr');
+      const updated = await service.execute(agentActor, TENANT, ACTION_ID, 'corr');
       expect(updated.status).toBe('executed');
       expect(repo.lastTransition?.[2]).toBe('approved');
     });
@@ -316,9 +359,10 @@ describe('ControlledActionsService', () => {
       for (const status of ['rejected', 'executed', 'failed'] as const) {
         repo.byId = action({ status });
         await expect(
-          service.execute(adminActor, TENANT, ACTION_ID, null, 'corr'),
+          service.execute(adminActor, TENANT, ACTION_ID, 'corr'),
         ).rejects.toBeInstanceOf(ConflictException);
       }
+      expect(dispatcher.lastInput).toBeNull();
     });
   });
 });

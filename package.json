@@ -8,8 +8,8 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security tests.project.test_phase3_persistence tests.project.test_phase4_voice_actions tests.tools.test_create_github_repo",
-    "test:project": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security tests.project.test_phase3_persistence tests.project.test_phase4_voice_actions",
+    "test": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security tests.project.test_phase3_persistence tests.project.test_phase4_voice_actions tests.project.test_phase5_dispatch_users tests.tools.test_create_github_repo",
+    "test:project": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security tests.project.test_phase3_persistence tests.project.test_phase4_voice_actions tests.project.test_phase5_dispatch_users",
     "test:tools": "python -m unittest tests.tools.test_create_github_repo",
     "test:api": "npm --workspace @aurion/api run test",
     "test:api:integration": "npm --workspace @aurion/api run test:integration",

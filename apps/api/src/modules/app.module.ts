@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { TenantsModule } from './tenants/tenants.module';
+import { UsersModule } from './users/users.module';
 import { VoiceSessionsModule } from './voice-sessions/voice-sessions.module';
 
 /**
@@ -39,6 +40,7 @@ import { VoiceSessionsModule } from './voice-sessions/voice-sessions.module';
     AuthModule,
     HealthModule,
     TenantsModule,
+    UsersModule,
     KnowledgeModule,
     AuditModule,
     VoiceSessionsModule,

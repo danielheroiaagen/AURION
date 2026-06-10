@@ -57,6 +57,8 @@ Actor máquina con permisos restringidos.
 |---------|----------------|--------------|------------|-------------|----------------------|---------|-------------|
 | `tenant:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
 | `tenant:settings:update` | Sí | Sí, mismo tenant | No | No | Parcial | No | No |
+| `user:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
+| `user:manage` | Sí | Sí, mismo tenant | No | No | No | No | No |
 | `conversation:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, asignadas | No | Sí, mismo tenant | Sí, contexto activo |
 | `conversation:review` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, lectura | No |
 | `conversation:write` | Sí | Sí, mismo tenant | No | No | No | No | Sí, sesiones propias |
@@ -73,6 +75,7 @@ Actor máquina con permisos restringidos.
 Estas acciones no se autorizan solo por rol. Pasan por **Policy Guard**, requieren `tenant_id`, actor, recurso y motivo auditable:
 
 - Cambiar configuración del tenant.
+- Invitar usuarios o cambiar roles/estado de membresías (`user:manage`). Nadie modifica su propia membresía; `platform_owner` no es asignable vía API.
 - Escribir o eliminar conocimiento de la base documental.
 - Ejecutar tools que creen o modifiquen compromisos con clientes.
 - Aprobar despliegues o cambios operativos.
