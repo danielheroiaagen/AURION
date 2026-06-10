@@ -1,0 +1,63 @@
+import type { PolicySubject } from './actor';
+import type { Permission } from './permissions';
+import { PERMISSIONS } from './permissions';
+
+/**
+ * MVP permission matrix (ADR-007, 05_SECURITY/permissions.md).
+ *
+ * Design rules applied here:
+ *  - Deny by default: a subject only holds the permissions listed below.
+ *  - "Parcial" cells from the documented matrix are NOT granted at this coarse
+ *    RBAC layer; partial scoping needs a dedicated ADR, so granting it now would
+ *    over-authorize. They are intentionally omitted.
+ *  - `billing:change` and `integration:credentials.update` are listed in
+ *    ADR-007 as sensitive actions without a matrix column. They are mapped here
+ *    conservatively (owner/admin for billing; owner/admin/integrator for
+ *    integration credentials) and always require human approval.
+ *  - Granting a permission here does not bypass tenant checks or human approval;
+ *    those are enforced by the policy decision point.
+ */
+const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
+  // Internal AURION operator: full platform authority.
+  platform_owner: new Set<Permission>([...PERMISSIONS]),
+
+  tenant_admin: new Set<Permission>([
+    'tenant:settings:update',
+    'conversation:read',
+    'conversation:review',
+    'knowledge:write',
+    'tool:execute:calendar.update',
+    'tool:execute:ticket.create',
+    'audit:read',
+    'billing:change',
+    'integration:credentials.update',
+  ]),
+
+  supervisor: new Set<Permission>([
+    'conversation:read',
+    'conversation:review',
+    'tool:execute:ticket.create',
+    'audit:read',
+  ]),
+
+  human_agent: new Set<Permission>(['conversation:read', 'tool:execute:ticket.create']),
+
+  // Integrations specialist: integration credentials only at this layer.
+  developer_integrator: new Set<Permission>(['integration:credentials.update']),
+
+  auditor: new Set<Permission>(['conversation:read', 'conversation:review', 'audit:read']),
+
+  // Machine actor: narrow read + tool execution, always gated by policy/approval.
+  voice_agent: new Set<Permission>([
+    'conversation:read',
+    'tool:execute:calendar.update',
+    'tool:execute:ticket.create',
+  ]),
+
+  // Internal system jobs receive explicit grants per use case later.
+  system: new Set<Permission>([]),
+};
+
+export function roleGrants(subject: PolicySubject, permission: Permission): boolean {
+  return MATRIX[subject]?.has(permission) ?? false;
+}

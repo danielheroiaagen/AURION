@@ -1,0 +1,61 @@
+name: CodeQL
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 7 * * 1'
+
+permissions:
+  contents: read
+
+# NOTE: GitHub code scanning (Security tab upload) requires GitHub Advanced
+# Security, which is unavailable on private repositories under the free plan —
+# the same limitation already recorded for branch protection in the phase 1
+# plan. Until the repo is public or upgraded, the analysis still runs fully and
+# the SARIF results are published as a workflow artifact for review.
+# When code scanning becomes available: set `upload: always`, restore the
+# `security-events: write` permission, and drop the artifact step.
+jobs:
+  analyze:
+    name: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # Required by codeql-action to read its own workflow-run metadata.
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - javascript-typescript
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          upload: never
+          output: codeql-results
+
+      - name: Publish SARIF results as artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: codeql-results
+          retention-days: 30
