@@ -47,6 +47,11 @@ jobs:
       - name: Build API
         run: npm --workspace @aurion/api run build
 
+      - name: OpenAPI artifact is in sync (ADR-009)
+        run: |
+          npm run openapi:generate
+          git diff --exit-code -- 32_API_REFERENCE/openapi.json
+
   integration:
     name: integration
     runs-on: ubuntu-latest

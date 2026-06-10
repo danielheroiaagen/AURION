@@ -5,11 +5,9 @@ import { PolicyService } from '../../src/modules/auth/application/policy.service
 import { ACTOR_REQUEST_KEY } from '../../src/modules/auth/decorators/current-actor.decorator';
 import { IS_PUBLIC_KEY } from '../../src/modules/auth/decorators/public.decorator';
 import { REQUIRED_PERMISSION_KEY } from '../../src/modules/auth/decorators/require-permission.decorator';
+import type { TokenVerifier } from '../../src/modules/auth/application/token-verifier.port';
 import { JwtAuthGuard } from '../../src/modules/auth/infrastructure/jwt-auth.guard';
-import {
-  JwtVerificationError,
-  type JwtVerifier,
-} from '../../src/modules/auth/infrastructure/jwt.verifier';
+import { JwtVerificationError } from '../../src/modules/auth/infrastructure/jwt.verifier';
 import { PolicyGuard } from '../../src/modules/auth/infrastructure/policy.guard';
 
 function makeContext(request: Record<string, unknown>): ExecutionContext {
@@ -29,33 +27,35 @@ function makeReflector(metadata: Record<string, unknown>): Reflector {
 describe('JwtAuthGuard', () => {
   const verifier = {
     verify: jest.fn(),
-  } as unknown as JwtVerifier;
+  } as unknown as TokenVerifier;
 
-  it('allows public routes without a token', () => {
+  it('allows public routes without a token', async () => {
     const guard = new JwtAuthGuard(makeReflector({ [IS_PUBLIC_KEY]: true }), verifier);
-    expect(guard.canActivate(makeContext({ headers: {} }))).toBe(true);
+    await expect(guard.canActivate(makeContext({ headers: {} }))).resolves.toBe(true);
   });
 
-  it('rejects a request with no bearer token', () => {
+  it('rejects a request with no bearer token', async () => {
     const guard = new JwtAuthGuard(makeReflector({}), verifier);
-    expect(() => guard.canActivate(makeContext({ headers: {} }))).toThrow(UnauthorizedException);
+    await expect(guard.canActivate(makeContext({ headers: {} }))).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 
-  it('rejects an invalid token', () => {
+  it('rejects an invalid token', async () => {
     (verifier.verify as jest.Mock).mockImplementation(() => {
       throw new JwtVerificationError('bad');
     });
     const guard = new JwtAuthGuard(makeReflector({}), verifier);
     const ctx = makeContext({ headers: { authorization: 'Bearer bad' } });
-    expect(() => guard.canActivate(ctx)).toThrow(UnauthorizedException);
+    await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
-  it('attaches the verified actor for a valid token', () => {
+  it('attaches the verified actor for a valid token (sync or async verifier)', async () => {
     const actor = { id: 'u', tenantId: 't', type: 'user', role: 'tenant_admin' };
-    (verifier.verify as jest.Mock).mockReturnValue(actor);
+    (verifier.verify as jest.Mock).mockResolvedValue(actor);
     const guard = new JwtAuthGuard(makeReflector({}), verifier);
     const request: Record<string, unknown> = { headers: { authorization: 'Bearer good' } };
-    expect(guard.canActivate(makeContext(request))).toBe(true);
+    await expect(guard.canActivate(makeContext(request))).resolves.toBe(true);
     expect(request[ACTOR_REQUEST_KEY]).toEqual(actor);
   });
 });

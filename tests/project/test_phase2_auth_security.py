@@ -93,7 +93,10 @@ class AuthImplementationTests(unittest.TestCase):
         text = read(API_SRC / "modules" / "auth" / "infrastructure" / "jwt.verifier.ts")
         self.assertIn("HS256", text)
         self.assertIn("timingSafeEqual", text)
-        self.assertIn("Missing expiration", text)
+        # Claim validation moved to the shared contract in phase 6 (ADR-016).
+        claims = read(API_SRC / "modules" / "auth" / "infrastructure" / "jwt-claims.ts")
+        self.assertIn("Missing expiration", claims)
+        self.assertIn("validateTimeClaims", text)
 
     def test_permission_matrix_covers_all_roles(self):
         text = read(API_SRC / "modules" / "auth" / "domain" / "permission-matrix.ts")

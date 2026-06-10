@@ -1,28 +1,34 @@
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+import { TOKEN_VERIFIER, type TokenVerifier } from '../application/token-verifier.port';
 import { ACTOR_REQUEST_KEY } from '../decorators/current-actor.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { JwtVerificationError, JwtVerifier } from './jwt.verifier';
+import { JwtVerificationError } from './jwt-claims';
 
 /**
  * Global authentication guard (ADR-007 step 2): verifies the bearer JWT and
  * attaches the normalized actor to the request. It performs authentication only
  * — authorization is the policy guard's job. Public routes are skipped.
+ *
+ * The guard depends on the `TokenVerifier` port (ADR-016): HS256 and
+ * JWKS/RS256 verification are interchangeable, selected by `AUTH_MODE`.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly verifier: JwtVerifier,
+    @Inject(TOKEN_VERIFIER)
+    private readonly verifier: TokenVerifier,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -38,7 +44,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      request[ACTOR_REQUEST_KEY] = this.verifier.verify(token);
+      request[ACTOR_REQUEST_KEY] = await this.verifier.verify(token);
     } catch (error) {
       if (error instanceof JwtVerificationError) {
         throw new UnauthorizedException('Invalid token.');

@@ -1,0 +1,1043 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/tenants/{tenantId}": {
+      "get": {
+        "operationId": "TenantsController_getTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the actor's own tenant.",
+        "tags": [
+          "tenants"
+        ]
+      }
+    },
+    "/api/v1/tenants/{tenantId}/settings": {
+      "patch": {
+        "operationId": "TenantsController_updateSettings",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTenantSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the tenant settings document.",
+        "tags": [
+          "tenants"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "post": {
+        "operationId": "UsersController_invite",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invite a user into the actor's tenant with a role.",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_list",
+        "parameters": [
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "tenant_admin",
+                "supervisor",
+                "human_agent",
+                "developer_integrator",
+                "auditor"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Membership status filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "invited",
+                "disabled"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the tenant members (cursor pagination).",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{userId}": {
+      "get": {
+        "operationId": "UsersController_getByUserId",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read one tenant member by user id.",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/memberships/{id}": {
+      "patch": {
+        "operationId": "MembershipsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a membership's role and/or status (never your own).",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/api/v1/knowledge-documents": {
+      "post": {
+        "operationId": "KnowledgeDocumentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKnowledgeDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register a knowledge document (starts in draft).",
+        "tags": [
+          "knowledge-documents"
+        ]
+      },
+      "get": {
+        "operationId": "KnowledgeDocumentsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "review",
+                "published",
+                "archived"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List knowledge documents (cursor pagination).",
+        "tags": [
+          "knowledge-documents"
+        ]
+      }
+    },
+    "/api/v1/knowledge-documents/{id}": {
+      "get": {
+        "operationId": "KnowledgeDocumentsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a knowledge document.",
+        "tags": [
+          "knowledge-documents"
+        ]
+      }
+    },
+    "/api/v1/knowledge-documents/{id}/status": {
+      "patch": {
+        "operationId": "KnowledgeDocumentsController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeKnowledgeDocumentStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move a document through its lifecycle.",
+        "tags": [
+          "knowledge-documents"
+        ]
+      }
+    },
+    "/api/v1/audit-events": {
+      "get": {
+        "operationId": "AuditEventsController_list",
+        "parameters": [
+          {
+            "name": "outcome",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "allowed",
+                "denied",
+                "succeeded",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "correlation_id",
+            "required": false,
+            "in": "query",
+            "description": "Filter by request correlation id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List audit evidence (cursor pagination).",
+        "tags": [
+          "audit-events"
+        ]
+      }
+    },
+    "/api/v1/voice-sessions": {
+      "post": {
+        "operationId": "VoiceSessionsController_start",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartVoiceSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a voice session (idempotent on external_session_id: replay returns 200).",
+        "tags": [
+          "voice-sessions"
+        ]
+      },
+      "get": {
+        "operationId": "VoiceSessionsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "started",
+                "active",
+                "completed",
+                "failed",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List voice sessions (cursor pagination).",
+        "tags": [
+          "voice-sessions"
+        ]
+      }
+    },
+    "/api/v1/voice-sessions/{id}": {
+      "get": {
+        "operationId": "VoiceSessionsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a voice session (summary decrypted for authorized readers).",
+        "tags": [
+          "voice-sessions"
+        ]
+      }
+    },
+    "/api/v1/voice-sessions/{id}/status": {
+      "patch": {
+        "operationId": "VoiceSessionsController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeVoiceSessionStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Advance the session lifecycle; closing transitions accept outcome fields.",
+        "tags": [
+          "voice-sessions"
+        ]
+      }
+    },
+    "/api/v1/actions": {
+      "post": {
+        "operationId": "ControlledActionsController_request",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestActionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request a controlled action (idempotent: same key + payload replays as 200).",
+        "tags": [
+          "actions"
+        ]
+      },
+      "get": {
+        "operationId": "ControlledActionsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "requested",
+                "approved",
+                "rejected",
+                "executed",
+                "failed",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from a previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List controlled actions (cursor pagination).",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/actions/{id}/approve": {
+      "post": {
+        "operationId": "ControlledActionsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve a requested action (human actors only, never the requester).",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/actions/{id}/reject": {
+      "post": {
+        "operationId": "ControlledActionsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject a requested action (human actors only, never the requester).",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/actions/{id}/execute": {
+      "post": {
+        "operationId": "ControlledActionsController_execute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Execute an action: the policy re-authorizes with the recorded approval and the result is produced by the dispatcher (ADR-014), never by the client.",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/actions/{id}": {
+      "get": {
+        "operationId": "ControlledActionsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a controlled action (payloads decrypted for authorized readers).",
+        "tags": [
+          "actions"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "AURION API",
+    "description": "Voice Agent SaaS Core API",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "UpdateTenantSettingsDto": {
+        "type": "object",
+        "properties": {
+          "settings": {
+            "type": "object",
+            "description": "Full replacement for the tenant settings document.",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "settings"
+        ]
+      },
+      "InviteUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email of the user to invite (global identity key)."
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Display name for a newly created identity."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "tenant_admin",
+              "supervisor",
+              "human_agent",
+              "developer_integrator",
+              "auditor"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "display_name",
+          "role"
+        ]
+      },
+      "Object": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMembershipDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "tenant_admin",
+              "supervisor",
+              "human_agent",
+              "developer_integrator",
+              "auditor"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          }
+        }
+      },
+      "CreateKnowledgeDocumentDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "source_uri": {
+            "type": "string",
+            "description": "Where the document content lives.",
+            "maxLength": 2048
+          },
+          "content_sha256": {
+            "type": "string",
+            "description": "Lowercase hex SHA-256 of the document content."
+          }
+        },
+        "required": [
+          "title",
+          "content_sha256"
+        ]
+      },
+      "ChangeKnowledgeDocumentStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "review",
+              "published",
+              "archived"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "StartVoiceSessionDto": {
+        "type": "object",
+        "properties": {
+          "external_session_id": {
+            "type": "string",
+            "description": "Stable id from the realtime provider. Retries with the same id return the existing session.",
+            "maxLength": 200
+          }
+        }
+      },
+      "ChangeVoiceSessionStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "started",
+              "active",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "description": "Conversation summary; accepted only on closing transitions. Encrypted at rest.",
+            "maxLength": 20000
+          },
+          "outcome": {
+            "type": "string",
+            "description": "Business outcome; closing transitions only.",
+            "maxLength": 500
+          },
+          "transcript_uri": {
+            "type": "string",
+            "description": "Transcript location; closing transitions only.",
+            "maxLength": 2048
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "RequestActionDto": {
+        "type": "object",
+        "properties": {
+          "action_type": {
+            "type": "string",
+            "enum": [
+              "calendar.update",
+              "ticket.create"
+            ]
+          },
+          "voice_session_id": {
+            "type": "string",
+            "description": "Voice session this action originates from."
+          },
+          "request_payload": {
+            "type": "object",
+            "description": "Tool request payload. Encrypted at rest.",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "action_type",
+          "request_payload"
+        ]
+      }
+    }
+  }
+}

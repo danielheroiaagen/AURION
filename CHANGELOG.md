@@ -61,8 +61,20 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   (prepend, sweep, verified retirement, escrow for backups) and the
   crypto-shredding posture.
 
+- ADR-016 external IdP support: `AUTH_MODE=jwks` verifies RS256 tokens
+  against the IdP's JWKS endpoint (kid-cached, cooldown-limited rotation
+  refresh, algorithm pinned, issuer+audience mandatory) with `node:crypto`
+  only — no JWT library in the supply chain. HS256 stays the dev/test mode.
+- Generated OpenAPI artifact `32_API_REFERENCE/openapi.json` (ADR-009's
+  review artifact) via `npm run openapi:generate`; CI fails on drift between
+  the committed artifact and the code.
+- HERMES dispatch receiver contract
+  (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
+  signature-before-parse, staleness window, `action_id` dedupe.
+
 ### Changed
 
 - **Breaking**: `POST /api/v1/actions/:id/execute` no longer accepts a client
   `result_payload` (ADR-014) — execution evidence can only originate at the
   dispatcher boundary.
+- `integration` added to the required status checks on `main`.
