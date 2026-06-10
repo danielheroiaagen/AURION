@@ -71,6 +71,11 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-021 dashboard OIDC sign-in: Authorization Code + PKCE (S256,
+  WebCrypto) as a public client — no client secret exists in the dashboard;
+  single-use state/verifier attempts rejected before any network call on
+  mismatch; the access token enters through the same API-validated
+  `signIn()` door; manual token paste stays as the explicit dev fallback.
 - ADR-020 containerized deployment: multi-stage non-root images for all
   four services, one compose stack (postgres + one-shot migrate + api +
   receiver + gateway, `full` profile adds dashboard + single-origin Caddy
