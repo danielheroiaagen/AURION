@@ -7,9 +7,11 @@
  * approval context. Deny by default.
  */
 export const PERMISSIONS = [
+  'tenant:read',
   'tenant:settings:update',
   'conversation:read',
   'conversation:review',
+  'knowledge:read',
   'knowledge:write',
   'tool:execute:calendar.update',
   'tool:execute:ticket.create',

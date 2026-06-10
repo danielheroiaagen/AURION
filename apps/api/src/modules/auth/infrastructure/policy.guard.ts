@@ -48,7 +48,7 @@ export class PolicyGuard implements CanActivate {
     const decision = this.policy.authorize({
       actor,
       permission,
-      resource: { tenantId: this.resolveResourceTenant(request) },
+      resource: { tenantId: this.resolveResourceTenant(request, actor) },
       correlationId:
         typeof request.correlationId === 'string' ? request.correlationId : undefined,
     });
@@ -59,7 +59,10 @@ export class PolicyGuard implements CanActivate {
     return true;
   }
 
-  private resolveResourceTenant(request: Record<string, unknown>): string | null {
+  private resolveResourceTenant(
+    request: Record<string, unknown>,
+    actor: AuthenticatedActor | null,
+  ): string | null {
     const params = (request.params as Record<string, unknown>) ?? {};
     const query = (request.query as Record<string, unknown>) ?? {};
     const body = (request.body as Record<string, unknown>) ?? {};
@@ -67,6 +70,13 @@ export class PolicyGuard implements CanActivate {
 
     const candidate =
       params.tenantId ?? body.tenantId ?? query.tenantId ?? headers['x-tenant-id'];
-    return typeof candidate === 'string' && candidate.length > 0 ? candidate : null;
+    if (typeof candidate === 'string' && candidate.length > 0) {
+      return candidate;
+    }
+    // Flat resource routes (ADR-009) carry no explicit tenant: the resource
+    // scope is the actor's own tenant. An explicit candidate above still wins,
+    // so a mismatching client-supplied tenant is denied as cross_tenant — this
+    // fallback can never widen authority beyond the verified token.
+    return actor?.tenantId ?? null;
   }
 }

@@ -6,13 +6,20 @@ Versión objetivo: **PostgreSQL 15+**. La migración MVP usa `ON DELETE SET NULL
 
 ## Quick path
 
-Aplicar una migración:
+Aplicar todas las migraciones pendientes con el runner (ADR-012):
 
 ```bash
-psql "$DATABASE_URL" -f database/migrations/2026-06-01-0001-create-mvp-core.up.sql
+DATABASE_URL=postgres://... npm run db:migrate
+DATABASE_URL=postgres://... npm run db:status
 ```
 
-Revertir una migración en entorno controlado:
+El runner registra cada archivo aplicado en la tabla `schema_migrations`
+(nombre + checksum SHA-256 + fecha). Las migraciones ya aplicadas se saltan;
+si el contenido de una migración aplicada cambia, el runner aborta: la
+historia es inmutable, se añade una migración nueva. Un advisory lock
+serializa despliegues concurrentes. Nunca se ejecuta en el arranque de la API.
+
+Revertir una migración en entorno controlado (manual, revisado):
 
 ```bash
 psql "$DATABASE_URL" -f database/migrations/2026-06-01-0001-create-mvp-core.down.sql

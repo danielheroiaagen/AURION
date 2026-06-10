@@ -7,6 +7,7 @@ import {
   type AuthorizationAuditPort,
 } from './application/authorization-audit.port';
 import { PolicyService } from './application/policy.service';
+import { DbAuditSink } from './infrastructure/db-audit.sink';
 import { JwtAuthGuard } from './infrastructure/jwt-auth.guard';
 import { JwtVerifier } from './infrastructure/jwt.verifier';
 import { LoggingAuditSink } from './infrastructure/logging-audit.sink';
@@ -30,7 +31,10 @@ import { PolicyGuard } from './infrastructure/policy.guard';
         return new JwtVerifier(config.jwt);
       },
     },
-    { provide: AUTHORIZATION_AUDIT_PORT, useClass: LoggingAuditSink },
+    // Evidence persists to append-only `audit_events` (ADR-012); the logging
+    // sink stays as the never-drop fallback inside DbAuditSink.
+    LoggingAuditSink,
+    { provide: AUTHORIZATION_AUDIT_PORT, useClass: DbAuditSink },
     {
       provide: PolicyService,
       useFactory: (audit: AuthorizationAuditPort): PolicyService => new PolicyService(audit),
