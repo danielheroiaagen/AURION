@@ -1,9 +1,18 @@
 /**
- * Voice gateway configuration (ADR-018), read once at startup. Fail closed:
- * the gateway refuses to boot without its API endpoint, its machine token,
- * at least one client connection key, and a known brain mode.
+ * Voice gateway configuration (ADR-018/ADR-022), read once at startup.
+ * Fail closed: the gateway refuses to boot without its API endpoint, its
+ * machine token, at least one client connection key, and a complete
+ * configuration for the selected brain mode.
  */
-export type BrainMode = 'scripted';
+export type BrainMode = 'scripted' | 'llm';
+
+export interface LlmConfig {
+  readonly apiUrl: string;
+  readonly apiKey: string;
+  readonly model: string;
+  readonly timeoutMs: number;
+  readonly maxTokens: number;
+}
 
 export interface GatewayConfig {
   readonly port: number;
@@ -11,6 +20,7 @@ export interface GatewayConfig {
   readonly voiceAgentToken: string;
   readonly clientKeys: readonly string[];
   readonly brainMode: BrainMode;
+  readonly llm: LlmConfig | null;
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -42,8 +52,31 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
   }
 
   const brainMode = (env.BRAIN_MODE ?? 'scripted').trim();
-  if (brainMode !== 'scripted') {
-    throw new Error(`BRAIN_MODE "${brainMode}" is unknown; supported: scripted.`);
+  if (brainMode !== 'scripted' && brainMode !== 'llm') {
+    throw new Error(`BRAIN_MODE "${brainMode}" is unknown; supported: scripted, llm.`);
+  }
+
+  let llm: LlmConfig | null = null;
+  if (brainMode === 'llm') {
+    const llmUrl = env.LLM_API_URL;
+    if (!llmUrl || !/^https?:\/\//.test(llmUrl)) {
+      throw new Error('LLM_API_URL is required in llm mode (ADR-022).');
+    }
+    const apiKey = env.LLM_API_KEY;
+    if (!apiKey || apiKey.length < 8) {
+      throw new Error('LLM_API_KEY is required in llm mode (ADR-022).');
+    }
+    const model = env.LLM_MODEL;
+    if (!model) {
+      throw new Error('LLM_MODEL is required in llm mode (ADR-022).');
+    }
+    llm = {
+      apiUrl: llmUrl.replace(/\/+$/, ''),
+      apiKey,
+      model,
+      timeoutMs: parsePositiveInt(env.LLM_TIMEOUT_MS, 30_000),
+      maxTokens: parsePositiveInt(env.LLM_MAX_TOKENS, 300),
+    };
   }
 
   return {
@@ -52,5 +85,6 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     voiceAgentToken,
     clientKeys,
     brainMode,
+    llm,
   };
 }
