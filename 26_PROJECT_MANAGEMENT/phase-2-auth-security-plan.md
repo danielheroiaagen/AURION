@@ -3,7 +3,7 @@ project: AURION
 document: Phase 2 Auth & Security Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-007, ADR-008, ADR-009, ADR-010, ADR-011
 ---
@@ -104,11 +104,11 @@ Remote verification passed on head `be76623` (2026-06-10), PR #8:
 - [x] Security (npm audit + gitleaks) passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27244303657`
 - [x] CodeQL passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27244303659`
 
-CodeQL note: code scanning upload to the Security tab requires GitHub Advanced
-Security (unavailable on the free private plan — same limitation as branch
-protection). The analysis runs fully and publishes SARIF as a 30-day workflow
-artifact; restore `upload: always` + `security-events: write` when the repo
-goes public or the plan is upgraded.
+Merge evidence:
 
-Remaining for closure: squash-merge PR #8 into `main`, confirm the `main` push
-CI passes, then flip this plan status to closed.
+- [x] PR #8 squash-merged into `main` as `6f97e89` on 2026-06-10.
+- [x] Repository made public on 2026-06-10, unblocking code scanning and branch
+      protection (Phase 1 follow-up / issue #6).
+- [x] CodeQL upload to the Security tab restored (`security-events: write`)
+      after the repository went public; the SARIF-artifact workaround used while
+      private was removed.
