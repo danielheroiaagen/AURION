@@ -27,6 +27,8 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      # Required by codeql-action to read its own workflow-run metadata.
+      actions: read
 
     strategy:
       fail-fast: false
