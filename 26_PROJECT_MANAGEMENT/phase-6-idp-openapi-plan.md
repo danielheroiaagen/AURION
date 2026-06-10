@@ -3,7 +3,7 @@ project: AURION
 document: Phase 6 External IdP & OpenAPI Artifact Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-007, ADR-009, ADR-014, ADR-016
 ---
@@ -84,4 +84,20 @@ Local verification passed on branch `phase-6/idp-openapi` (2026-06-10):
 - [x] `npm --workspace @aurion/api run typecheck` and `build` passed.
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `3054827` (2026-06-10), PR #19:
+
+- [x] PR opened: `https://github.com/danielheroiaagen/AURION/pull/19`
+- [x] All six checks green on the first CI round: verify (including the new
+      OpenAPI drift check), integration, dependency-audit, secret-scan,
+      CodeQL, analyze (javascript-typescript).
+
+Merge evidence:
+
+- [x] PR #19 squash-merged into `main` as `a41c279` on 2026-06-10 with all
+      six checks green — `integration` now enforced as a required check.
+
+With this phase the backend API core is production-grade: asymmetric trust
+against an external IdP, a drift-checked contract artifact, real dispatch
+boundaries, encrypted evidence, and RLS-enforced tenancy. Remaining tracks
+are operational (IdP onboarding, deployment/infrastructure, HERMES receiver
+implementation) and product (dashboard, realtime voice runtime).
