@@ -71,6 +71,13 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-022 LLM brain adapter (`BRAIN_MODE=llm`): OpenAI-compatible Chat
+  Completions over plain fetch (no SDK); the model is offered exactly the
+  `ACTION_TYPES` tool catalog — tool calls become approval-gated action
+  requests through the unchanged safety path, unknown tools are dropped
+  (the model cannot mint capabilities); upstream failures surface as
+  `upstream_failed`, never fabricated replies. `scripted` stays the
+  deterministic default for dev/CI/E2E.
 - ADR-021 dashboard OIDC sign-in: Authorization Code + PKCE (S256,
   WebCrypto) as a public client — no client secret exists in the dashboard;
   single-use state/verifier attempts rejected before any network call on
