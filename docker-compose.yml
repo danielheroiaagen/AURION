@@ -1,0 +1,114 @@
+# AURION single-VPS stack (ADR-020). Secrets come ONLY from the environment
+# (an uncommitted .env on the VPS; the E2E driver injects its own throwaways).
+# Core services have no profile; `--profile full` adds dashboard + edge.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aurion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-aurion}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - '${POSTGRES_HOST_PORT:-54320}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-aurion}']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    command: ['node', 'tools/db/migrate.mjs', 'migrate']
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aurion}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aurion}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: '3000'
+      DATABASE_URL: postgres://${POSTGRES_USER:-aurion}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aurion}
+      AUTH_MODE: ${AUTH_MODE:-hs256}
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_ISSUER: ${JWT_ISSUER:-}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL:-}
+      DATA_ENCRYPTION_KEYS: ${DATA_ENCRYPTION_KEYS:?set DATA_ENCRYPTION_KEYS}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      ACTION_DISPATCH_MODE: ${ACTION_DISPATCH_MODE:-hermes}
+      HERMES_DISPATCH_URL: ${HERMES_DISPATCH_URL:-http://hermes-receiver:8090/dispatch}
+      HERMES_DISPATCH_SECRET: ${HERMES_DISPATCH_SECRET:?set HERMES_DISPATCH_SECRET}
+      HERMES_DISPATCH_ALLOW_INSECURE_HTTP: ${HERMES_DISPATCH_ALLOW_INSECURE_HTTP:-true}
+    ports:
+      - '${API_HOST_PORT:-3000}:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/api/v1/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+  hermes-receiver:
+    build:
+      context: .
+      dockerfile: docker/hermes-receiver.Dockerfile
+    environment:
+      PORT: '8090'
+      HERMES_RECEIVER_SECRET: ${HERMES_DISPATCH_SECRET:?set HERMES_DISPATCH_SECRET}
+
+  voice-gateway:
+    build:
+      context: .
+      dockerfile: docker/voice-gateway.Dockerfile
+    environment:
+      PORT: '8080'
+      AURION_API_URL: http://api:3000
+      VOICE_AGENT_TOKEN: ${VOICE_AGENT_TOKEN:?set VOICE_AGENT_TOKEN}
+      VOICE_GATEWAY_CLIENT_KEYS: ${VOICE_GATEWAY_CLIENT_KEYS:?set VOICE_GATEWAY_CLIENT_KEYS}
+      BRAIN_MODE: ${BRAIN_MODE:-scripted}
+    ports:
+      - '${GATEWAY_HOST_PORT:-8080}:8080'
+    depends_on:
+      api:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/dashboard.Dockerfile
+    profiles: ['full']
+
+  edge:
+    image: caddy:2-alpine
+    profiles: ['full']
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    ports:
+      - '${EDGE_HTTP_PORT:-80}:80'
+      - '${EDGE_HTTPS_PORT:-443}:443'
+    depends_on:
+      - api
+      - voice-gateway
+      - dashboard
+
+volumes:
+  postgres-data:
+  caddy-data:

@@ -47,6 +47,16 @@ describe('loadDispatchConfig', () => {
     ).toThrow(/HERMES_DISPATCH_SECRET/);
   });
 
+  it('allows private-network plain http only with the explicit flag (ADR-020)', () => {
+    const config = loadDispatchConfig({
+      ACTION_DISPATCH_MODE: 'hermes',
+      HERMES_DISPATCH_URL: 'http://hermes-receiver:8090/dispatch',
+      HERMES_DISPATCH_SECRET: SECRET,
+      HERMES_DISPATCH_ALLOW_INSECURE_HTTP: 'true',
+    });
+    expect(config.hermes?.url).toBe('http://hermes-receiver:8090/dispatch');
+  });
+
   it('accepts a complete hermes configuration (and localhost http for dev)', () => {
     const config = loadDispatchConfig({
       ACTION_DISPATCH_MODE: 'hermes',
