@@ -8,6 +8,7 @@ import { AuditPage } from './pages/audit';
 import { CallbackPage } from './pages/callback';
 import { KnowledgePage } from './pages/knowledge';
 import { LoginPage } from './pages/login';
+import { OverviewPage } from './pages/overview';
 import { SessionsPage } from './pages/sessions';
 import { TenantPage } from './pages/tenant';
 import { UsersPage } from './pages/users';
@@ -20,7 +21,7 @@ export function App(): ReactNode {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/callback" element={<CallbackPage />} />
           <Route element={<ProtectedLayout />}>
-            <Route index element={<Navigate to="/actions" replace />} />
+            <Route index element={<OverviewPage />} />
             <Route path="/actions" element={<ActionsPage />} />
             <Route path="/sessions" element={<SessionsPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />

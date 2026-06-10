@@ -32,6 +32,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'knowledge:read',
     'knowledge:write',
     'action:read',
+    'metrics:read',
     'tool:execute:calendar.update',
     'tool:execute:ticket.create',
     'audit:read',
@@ -46,6 +47,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'conversation:review',
     'knowledge:read',
     'action:read',
+    'metrics:read',
     'tool:execute:ticket.create',
     'audit:read',
   ]),
@@ -66,6 +68,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'conversation:review',
     'knowledge:read',
     'action:read',
+    'metrics:read',
     'audit:read',
   ]),
 

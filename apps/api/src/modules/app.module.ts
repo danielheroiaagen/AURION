@@ -12,6 +12,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { UsersModule } from './users/users.module';
 import { VoiceSessionsModule } from './voice-sessions/voice-sessions.module';
@@ -45,6 +46,7 @@ import { VoiceSessionsModule } from './voice-sessions/voice-sessions.module';
     AuditModule,
     VoiceSessionsModule,
     ActionsModule,
+    MetricsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

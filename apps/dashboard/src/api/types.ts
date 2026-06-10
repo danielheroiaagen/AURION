@@ -92,6 +92,23 @@ export interface AuditEventResponse {
   created_at: string;
 }
 
+export interface MetricsOverviewResponse {
+  window_days: number;
+  sessions: {
+    total: number;
+    by_status: Record<string, number>;
+    completion_rate: number | null;
+  };
+  actions: {
+    total: number;
+    by_status: Record<string, number>;
+    by_type: Record<string, number>;
+    approval_rate: number | null;
+    execution_success_rate: number | null;
+  };
+  approvals_pending: number;
+}
+
 /** RFC 9457-style error shape every API error returns (ADR-009). */
 export interface ProblemDetails {
   type?: string;

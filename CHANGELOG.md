@@ -71,6 +71,12 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-023 metrics & supervision: tenant-scoped
+  `GET /api/v1/metrics/overview` (new `metrics:read` permission; SQL
+  aggregates inside RLS; rates are `null` on zero denominators, approval
+  rate counted from decision stamps rather than current status) and a
+  dashboard Overview landing page (KPI cards, CSS-only bars, 30s
+  auto-refresh) plus a live pending-approvals badge in the navigation.
 - ADR-022 LLM brain adapter (`BRAIN_MODE=llm`): OpenAI-compatible Chat
   Completions over plain fetch (no SDK); the model is offered exactly the
   `ACTION_TYPES` tool catalog — tool calls become approval-gated action
