@@ -3,7 +3,7 @@ project: AURION
 document: Phase 9 HERMES Receiver Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-003, ADR-014, ADR-019
 ---
@@ -65,4 +65,10 @@ Local verification passed on branch `phase-9/hermes-receiver` (2026-06-10):
       passed; zero runtime dependencies confirmed by contract test.
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `030d881` (2026-06-10), PR #23: all six
+checks green on the first CI round.
+
+Merge evidence: PR #23 squash-merged into `main` as `e36da13` on 2026-06-10.
+
+Carried follow-ups: real connector adapters per integration, durable dedupe
+when a connector demands it.
