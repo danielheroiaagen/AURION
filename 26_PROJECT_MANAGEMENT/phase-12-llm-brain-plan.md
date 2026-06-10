@@ -3,7 +3,7 @@ project: AURION
 document: Phase 12 LLM Brain Adapter Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-013, ADR-018, ADR-022
 ---
@@ -60,4 +60,17 @@ Local verification passed on branch `phase-12/llm-brain` (2026-06-10):
 - [x] Gateway typecheck and build passed.
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `1b5e689` (2026-06-10), PR #26: all
+seven checks green on the first round.
+
+Merge evidence: PR #26 squash-merged into `main` as `9d15a61` on 2026-06-10.
+
+**This closes the phase program (0–12).** Every track from the MVP boundary
+(ADR-004) and beyond is implemented and verified: multi-tenant API core
+with RLS + encryption + audit, human-approval action workflow with real
+HMAC-signed dispatch and a receiver, admin dashboard with OIDC PKCE, a
+realtime voice gateway with both deterministic and LLM brains, containerized
+single-VPS deployment, and an end-to-end CI harness that exercises the full
+product loop on every PR. Remaining items are operational (IdP onboarding,
+real connectors, VPS go-live) or explicitly deferred by ADR (media server,
+per-tenant keys, streaming) — each with its decision record.
