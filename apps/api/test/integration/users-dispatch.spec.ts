@@ -84,8 +84,14 @@ describeIntegration('users administration & action dispatch against PostgreSQL',
       admin,
     );
 
-    // Isolated fixtures (ids/emails disjoint from the other suites).
-    await admin.deleteFrom('tenants').where('id', 'in', [TENANT_C, TENANT_D]).execute();
+    // Isolated fixtures (ids, slugs, and emails disjoint from the other
+    // suites — `persistence.spec.ts` already owns the `globex` slug).
+    await admin
+      .deleteFrom('tenants')
+      .where((eb) =>
+        eb.or([eb('id', 'in', [TENANT_C, TENANT_D]), eb('slug', 'in', ['globex-p5', 'hooli-p5'])]),
+      )
+      .execute();
     await admin.deleteFrom('users').where('id', 'in', [ADMIN_C, ADMIN_D]).execute();
     await admin
       .deleteFrom('users')
@@ -94,8 +100,8 @@ describeIntegration('users administration & action dispatch against PostgreSQL',
     await admin
       .insertInto('tenants')
       .values([
-        { id: TENANT_C, slug: 'globex', name: 'Globex', settings: '{}' },
-        { id: TENANT_D, slug: 'hooli', name: 'Hooli', settings: '{}' },
+        { id: TENANT_C, slug: 'globex-p5', name: 'Globex P5', settings: '{}' },
+        { id: TENANT_D, slug: 'hooli-p5', name: 'Hooli P5', settings: '{}' },
       ])
       .execute();
     await admin
