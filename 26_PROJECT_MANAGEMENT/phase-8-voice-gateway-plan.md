@@ -3,7 +3,7 @@ project: AURION
 document: Phase 8 Voice Gateway Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-013, ADR-014, ADR-016, ADR-018
 ---
@@ -78,4 +78,22 @@ Local verification passed on branch `phase-8/voice-gateway` (2026-06-10):
       passed.
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `cf818aa` (2026-06-10), PR #22:
+
+- [x] PR opened: `https://github.com/danielheroiaagen/AURION/pull/22`
+- [x] All six checks green on the first CI round: verify (now including
+      gateway typecheck + tests + build), integration, dependency-audit,
+      secret-scan, CodeQL, analyze (javascript-typescript).
+
+Merge evidence:
+
+- [x] PR #22 squash-merged into `main` as `ff71b42` on 2026-06-10 with all
+      checks green.
+
+With this phase the full product loop exists in code: caller speaks
+(gateway) → agent requests (voice_agent, always gated) → human approves
+(dashboard) → dispatcher executes (HERMES port) → evidence audited and
+encrypted (API). Remaining tracks are deployment/infrastructure (compose,
+VPS, media server for WebRTC/SIP, E2E suites), realtime speech provider
+adapters behind AgentBrainPort, the HERMES receiver implementation, and
+OIDC PKCE sign-in.
