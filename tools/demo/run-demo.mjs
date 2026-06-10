@@ -53,8 +53,11 @@ const runEnv = { ...process.env, ...ENV, VOICE_AGENT_TOKEN: voiceToken };
 const compose = (args) =>
   spawnSync('docker', ['compose', '--profile', 'full', ...args], { stdio: 'inherit', env: runEnv });
 
-async function api(path, { method = 'GET', token, body } = {}) {
-  const response = await fetch(`${API}${path}`, {
+/** Joins path segments with each one URI-encoded: a segment can never add
+ * slashes, query strings, or dots that change which endpoint is hit. */
+async function api(segments, { method = 'GET', token, body } = {}) {
+  const path = segments.map((segment) => encodeURIComponent(segment)).join('/');
+  const response = await fetch(`${API}/${path}`, {
     method,
     headers: {
       authorization: `Bearer ${token}`,
@@ -179,12 +182,12 @@ async function main() {
   // Live workflow data: one executed, one rejected, one awaiting approval.
   const executedId = await conversation('demo-call-1', 'Tengo un problema con mi pedido, abre un ticket');
   if (!executedId) throw new Error('demo-call-1 did not yield a valid action id');
-  await api(`/actions/${executedId}/approve`, { method: 'POST', token: supervisorToken });
-  await api(`/actions/${executedId}/execute`, { method: 'POST', token: adminToken });
+  await api(['actions', executedId, 'approve'], { method: 'POST', token: supervisorToken });
+  await api(['actions', executedId, 'execute'], { method: 'POST', token: adminToken });
 
   const rejectedId = await conversation('demo-call-2', 'Quiero cambiar mi cita del jueves');
   if (!rejectedId) throw new Error('demo-call-2 did not yield a valid action id');
-  await api(`/actions/${rejectedId}/reject`, { method: 'POST', token: supervisorToken });
+  await api(['actions', rejectedId, 'reject'], { method: 'POST', token: supervisorToken });
 
   await conversation('demo-call-3', 'Necesito un ticket para una factura duplicada');
   console.log('  ✓ live workflow seeded: 1 executed (real dispatch), 1 rejected, 1 awaiting approval');
