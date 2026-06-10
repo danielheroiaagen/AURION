@@ -38,3 +38,14 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - Integration test suite against real PostgreSQL (RLS isolation, append-only
   audit, lifecycle compare-and-set) plus a CI `integration` job with a
   `postgres:16` service.
+- ADR-013 voice sessions & controlled actions: lifecycles with compare-and-set
+  transitions, required `Idempotency-Key` with same-payload replay semantics,
+  and the request → approve/reject → execute human-approval workflow
+  (self-approval banned, machine approvers banned, execution re-authorized
+  through the policy with the database-recorded approval).
+- `/api/v1/voice-sessions` and `/api/v1/actions` endpoints, completing all six
+  ADR-009 MVP contract groups; `conversation:write` and `action:read`
+  permissions.
+- First real consumers of column encryption: `voice_sessions.summary` and
+  controlled-action payloads are AES-256-GCM ciphertext at rest (verified by
+  raw-column reads in integration tests).

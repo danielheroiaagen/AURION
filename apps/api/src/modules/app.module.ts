@@ -7,11 +7,13 @@ import { CryptoModule } from '../common/crypto/crypto.module';
 import { ProblemDetailsFilter } from '../common/errors/problem-details.filter';
 import { loadSecurityConfig } from '../config/security.config';
 import { DatabaseModule } from '../database/database.module';
+import { ActionsModule } from './actions/actions.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { TenantsModule } from './tenants/tenants.module';
+import { VoiceSessionsModule } from './voice-sessions/voice-sessions.module';
 
 /**
  * Application composition root.
@@ -39,6 +41,8 @@ import { TenantsModule } from './tenants/tenants.module';
     TenantsModule,
     KnowledgeModule,
     AuditModule,
+    VoiceSessionsModule,
+    ActionsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

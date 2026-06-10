@@ -47,36 +47,12 @@ export class PolicyService {
       return decision;
     };
 
-    if (!actor) {
-      return deny('no_actor');
+    const grantFailure = this.checkGrant(request);
+    if (grantFailure) {
+      return deny(grantFailure);
     }
 
-    const subject = subjectOf(actor);
-    if (!subject) {
-      return deny('no_subject');
-    }
-
-    if (isTenantScoped(permission)) {
-      const resourceTenant = request.resource.tenantId;
-      if (!resourceTenant) {
-        return deny('missing_tenant');
-      }
-      // Platform owners are global operators and may cross tenant boundaries.
-      if (actor.role !== 'platform_owner') {
-        if (!actor.tenantId || actor.tenantId !== resourceTenant) {
-          return deny('cross_tenant');
-        }
-      }
-    }
-
-    if (!roleGrants(subject, permission)) {
-      return deny('role_not_permitted');
-    }
-
-    const needsApproval =
-      requiresHumanApproval(permission) ||
-      (actor.type === 'voice_agent' && isToolExecution(permission));
-    if (needsApproval && !request.humanApproval?.approved) {
+    if (this.needsHumanApproval(request) && !request.humanApproval?.approved) {
       return deny('human_approval_required');
     }
 
@@ -87,6 +63,70 @@ export class PolicyService {
     };
     this.emit(request, decision);
     return decision;
+  }
+
+  /**
+   * Evaluate the grant (actor, tenant scope, role) WITHOUT the human-approval
+   * gate, reporting whether execution will require approval (ADR-013).
+   *
+   * This is the decision point for the *request* stage of approval-gated
+   * actions: requesting must be possible before any approval record exists.
+   * `authorize` remains the only method that can green-light *execution*.
+   * Sensitive decisions emit audit evidence exactly like `authorize`.
+   */
+  assessGrant(
+    request: Omit<AuthorizationRequest, 'humanApproval'>,
+  ): AuthorizationDecision & { readonly requiresHumanApproval: boolean } {
+    const { permission } = request;
+    const sensitive = isSensitive(permission);
+    const reason = this.checkGrant(request);
+
+    const decision: AuthorizationDecision = reason
+      ? { allowed: false, permission, reason, requiresAudit: sensitive }
+      : { allowed: true, permission, requiresAudit: sensitive };
+    this.emit(request, decision);
+    return { ...decision, requiresHumanApproval: this.needsHumanApproval(request) };
+  }
+
+  /** Shared actor / tenant / role checks; null means the grant holds. */
+  private checkGrant(
+    request: Omit<AuthorizationRequest, 'humanApproval'>,
+  ): DenyReason | null {
+    const { actor, permission } = request;
+
+    if (!actor) {
+      return 'no_actor';
+    }
+
+    const subject = subjectOf(actor);
+    if (!subject) {
+      return 'no_subject';
+    }
+
+    if (isTenantScoped(permission)) {
+      const resourceTenant = request.resource.tenantId;
+      if (!resourceTenant) {
+        return 'missing_tenant';
+      }
+      // Platform owners are global operators and may cross tenant boundaries.
+      if (actor.role !== 'platform_owner') {
+        if (!actor.tenantId || actor.tenantId !== resourceTenant) {
+          return 'cross_tenant';
+        }
+      }
+    }
+
+    if (!roleGrants(subject, permission)) {
+      return 'role_not_permitted';
+    }
+    return null;
+  }
+
+  private needsHumanApproval(request: Omit<AuthorizationRequest, 'humanApproval'>): boolean {
+    return (
+      requiresHumanApproval(request.permission) ||
+      (request.actor?.type === 'voice_agent' && isToolExecution(request.permission))
+    );
   }
 
   private emit(request: AuthorizationRequest, decision: AuthorizationDecision): void {

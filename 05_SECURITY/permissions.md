@@ -59,10 +59,12 @@ Actor máquina con permisos restringidos.
 | `tenant:settings:update` | Sí | Sí, mismo tenant | No | No | Parcial | No | No |
 | `conversation:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, asignadas | No | Sí, mismo tenant | Sí, contexto activo |
 | `conversation:review` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, lectura | No |
+| `conversation:write` | Sí | Sí, mismo tenant | No | No | No | No | Sí, sesiones propias |
 | `knowledge:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, mismo tenant | No | Sí, mismo tenant | Sí, conocimiento publicado |
 | `knowledge:write` | Sí | Sí, mismo tenant | No | No | Parcial | No | No |
 | `tool:execute:calendar.update` | Sí | Sí, mismo tenant | No | No | No | No | Sí, si la policy lo permite |
 | `tool:execute:ticket.create` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, asignadas | No | No | Sí, si la policy lo permite |
+| `action:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | Sí, acciones propias |
 | `audit:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
 | `deployment:approve` | Sí | No | No | No | No | No | No |
 
