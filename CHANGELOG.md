@@ -71,6 +71,12 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-019 HERMES dispatch receiver (`apps/hermes-receiver`):
+  zero-runtime-dependency Node service implementing the receiver contract —
+  constant-time HMAC verification over raw bytes BEFORE parsing, 300s
+  staleness window on the signed timestamp, at-most-once execution per
+  `action_id` (replay returns the original evidence), explicit 422 for
+  unknown action types, stub connectors stamped `connector_mode: "stub"`.
 - ADR-018 realtime voice gateway (`apps/voice-gateway`): dependency-light
   Node service (runtime dep: `ws` only) orchestrating conversations over the
   WebSocket event contract deferred since ADR-009
