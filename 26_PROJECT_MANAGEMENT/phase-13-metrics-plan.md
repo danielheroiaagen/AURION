@@ -3,7 +3,7 @@ project: AURION
 document: Phase 13 Metrics & Supervision Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-009, ADR-017, ADR-023
 ---
@@ -66,4 +66,11 @@ Local verification passed on branch `phase-13/metrics-dashboard`
 - [x] OpenAPI regenerated (`/api/v1/metrics/overview` present); dashboard
       build green; `npm audit`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `7587283` (2026-06-10), PR #27: all
+seven checks green on the first round.
+
+Merge evidence: PR #27 squash-merged into `main` as `ce9b203` on 2026-06-10.
+
+Carried follow-ups: realtime admin event stream (with the media-server
+phase), CSAT capture, latency percentiles (needs turn-level timing in the
+gateway), exports.
