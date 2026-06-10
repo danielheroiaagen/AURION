@@ -27,6 +27,20 @@ export interface AgentBrainPort {
   respond(context: BrainContext): Promise<BrainReply>;
 }
 
+// --- Speech to text ----------------------------------------------------------
+
+export interface UtteranceAudio {
+  readonly audio: Buffer;
+  readonly mimeType: string;
+  readonly lang?: string;
+}
+
+export interface TranscriptionPort {
+  /** Recognized text for one utterance; empty string when nothing was heard.
+   * The audio is transient (ADR-025): forwarded to the provider and dropped. */
+  transcribe(input: UtteranceAudio): Promise<string>;
+}
+
 // --- AURION API (system of record) ------------------------------------------
 
 export interface StartedSession {

@@ -1,6 +1,7 @@
 import { loadGatewayConfig } from './config.js';
 import { AurionApiClient } from './infrastructure/aurion-api.client.js';
 import { LlmBrain } from './infrastructure/llm-brain.js';
+import { OpenAiTranscriber } from './infrastructure/openai-transcriber.js';
 import { ScriptedBrain } from './infrastructure/scripted-brain.js';
 import { startWsServer } from './infrastructure/ws-server.js';
 
@@ -13,4 +14,7 @@ startWsServer({
   api: new AurionApiClient(config.apiUrl, config.voiceAgentToken),
   // BRAIN_MODE is validated fail-closed at load time (ADR-018/ADR-022).
   brain: config.brainMode === 'llm' ? new LlmBrain(config.llm!) : new ScriptedBrain(),
+  // STT_MODE likewise (ADR-025); off means audio.utterance answers stt_disabled.
+  transcriber: config.sttMode === 'openai' ? new OpenAiTranscriber(config.stt!) : null,
+  maxAudioBytes: config.stt?.maxAudioBytes,
 });

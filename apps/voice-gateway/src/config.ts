@@ -1,10 +1,11 @@
 /**
- * Voice gateway configuration (ADR-018/ADR-022), read once at startup.
- * Fail closed: the gateway refuses to boot without its API endpoint, its
- * machine token, at least one client connection key, and a complete
- * configuration for the selected brain mode.
+ * Voice gateway configuration (ADR-018/ADR-022/ADR-025), read once at
+ * startup. Fail closed: the gateway refuses to boot without its API
+ * endpoint, its machine token, at least one client connection key, and a
+ * complete configuration for the selected brain and STT modes.
  */
 export type BrainMode = 'scripted' | 'llm';
+export type SttMode = 'off' | 'openai';
 
 export interface LlmConfig {
   readonly apiUrl: string;
@@ -14,6 +15,14 @@ export interface LlmConfig {
   readonly maxTokens: number;
 }
 
+export interface SttConfig {
+  readonly apiUrl: string;
+  readonly apiKey: string;
+  readonly model: string;
+  readonly timeoutMs: number;
+  readonly maxAudioBytes: number;
+}
+
 export interface GatewayConfig {
   readonly port: number;
   readonly apiUrl: string;
@@ -21,6 +30,8 @@ export interface GatewayConfig {
   readonly clientKeys: readonly string[];
   readonly brainMode: BrainMode;
   readonly llm: LlmConfig | null;
+  readonly sttMode: SttMode;
+  readonly stt: SttConfig | null;
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -79,6 +90,30 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     };
   }
 
+  const sttMode = (env.STT_MODE ?? 'off').trim();
+  if (sttMode !== 'off' && sttMode !== 'openai') {
+    throw new Error(`STT_MODE "${sttMode}" is unknown; supported: off, openai.`);
+  }
+
+  let stt: SttConfig | null = null;
+  if (sttMode === 'openai') {
+    const apiKey = env.STT_API_KEY;
+    if (!apiKey || apiKey.length < 8) {
+      throw new Error('STT_API_KEY is required in openai STT mode (ADR-025).');
+    }
+    const sttUrl = (env.STT_API_URL ?? 'https://api.openai.com/v1').trim();
+    if (!/^https?:\/\//.test(sttUrl)) {
+      throw new Error('STT_API_URL must be an http(s) URL (ADR-025).');
+    }
+    stt = {
+      apiUrl: sttUrl.replace(/\/+$/, ''),
+      apiKey,
+      model: (env.STT_MODEL ?? 'gpt-4o-mini-transcribe').trim(),
+      timeoutMs: parsePositiveInt(env.STT_TIMEOUT_MS, 30_000),
+      maxAudioBytes: parsePositiveInt(env.STT_MAX_AUDIO_BYTES, 2_000_000),
+    };
+  }
+
   return {
     port: parsePositiveInt(env.PORT, 8080),
     apiUrl: apiUrl.replace(/\/+$/, ''),
@@ -86,5 +121,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     clientKeys,
     brainMode,
     llm,
+    sttMode,
+    stt,
   };
 }
