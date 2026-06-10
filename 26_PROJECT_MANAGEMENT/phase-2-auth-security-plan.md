@@ -97,5 +97,18 @@ Local verification passed on branch `phase-2/auth-security` (2026-06-10):
       returns 200 with Helmet headers and a correlation id; unknown routes return
       a Problem Details `application/problem+json` 404.
 
-Remaining for closure: push the branch, confirm CI (verify + security + CodeQL),
-open the PR, and append CI run links.
+Remote verification passed on head `be76623` (2026-06-10), PR #8:
+
+- [x] PR opened: `https://github.com/danielheroiaagen/AURION/pull/8`
+- [x] CI (verify) passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27244303670`
+- [x] Security (npm audit + gitleaks) passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27244303657`
+- [x] CodeQL passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27244303659`
+
+CodeQL note: code scanning upload to the Security tab requires GitHub Advanced
+Security (unavailable on the free private plan — same limitation as branch
+protection). The analysis runs fully and publishes SARIF as a 30-day workflow
+artifact; restore `upload: always` + `security-events: write` when the repo
+goes public or the plan is upgraded.
+
+Remaining for closure: squash-merge PR #8 into `main`, confirm the `main` push
+CI passes, then flip this plan status to closed.
