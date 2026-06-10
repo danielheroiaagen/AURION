@@ -1,0 +1,62 @@
+import type { ConversationTurn } from '../domain/conversation.js';
+
+/**
+ * Driven ports of the voice gateway (ADR-018). The engine depends on these
+ * only; adapters are selected at startup.
+ */
+
+// --- Agent brain -----------------------------------------------------------
+
+export interface BrainContext {
+  readonly transcript: readonly ConversationTurn[];
+  /** Titles of the tenant's published knowledge documents. */
+  readonly knowledge: readonly string[];
+}
+
+export interface ToolIntent {
+  readonly actionType: string;
+  readonly payload: Record<string, unknown>;
+}
+
+export interface BrainReply {
+  readonly text: string;
+  readonly toolIntent: ToolIntent | null;
+}
+
+export interface AgentBrainPort {
+  respond(context: BrainContext): Promise<BrainReply>;
+}
+
+// --- AURION API (system of record) ------------------------------------------
+
+export interface StartedSession {
+  readonly sessionId: string;
+}
+
+export interface RequestedAction {
+  readonly actionId: string;
+  readonly status: string;
+  readonly approvalRequired: boolean;
+}
+
+export interface AurionApiPort {
+  /** POST /voice-sessions (idempotent on external_session_id) + transition to active. */
+  startSession(externalSessionId: string): Promise<StartedSession>;
+  /** Published knowledge titles for the brain context. */
+  listPublishedKnowledge(): Promise<readonly string[]>;
+  /** POST /actions with the turn-keyed Idempotency-Key. */
+  requestAction(input: {
+    sessionId: string;
+    actionType: string;
+    payload: Record<string, unknown>;
+    idempotencyKey: string;
+  }): Promise<RequestedAction>;
+  /** GET /actions/:id → current status. */
+  getActionStatus(actionId: string): Promise<string>;
+  /** Transition to completed/failed with closing fields. */
+  closeSession(
+    sessionId: string,
+    status: 'completed' | 'failed',
+    fields: { summary?: string; outcome?: string },
+  ): Promise<void>;
+}
