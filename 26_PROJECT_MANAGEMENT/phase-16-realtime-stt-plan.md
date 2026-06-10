@@ -3,7 +3,7 @@ project: AURION
 document: Phase 16 Server-Side STT Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-11
 related: ADR-018, ADR-024, ADR-025
 ---
@@ -39,14 +39,14 @@ the browser.
 
 ## Acceptance criteria
 
-- [ ] With `STT_MODE=openai`, a recorded utterance round-trips:
+- [x] With `STT_MODE=openai`, a recorded utterance round-trips:
       `audio.utterance` → `audio.transcript` → `turn.agent`, with
       turn-keyed idempotency and approval-gated actions unchanged.
-- [ ] `STT_API_KEY` appears in gateway config only; contract tests prove
+- [x] `STT_API_KEY` appears in gateway config only; contract tests prove
       the widget bundle and source contain no provider key or endpoint.
-- [ ] Every failure mode (`stt_disabled`, `audio_too_large`, `stt_failed`,
+- [x] Every failure mode (`stt_disabled`, `audio_too_large`, `stt_failed`,
       empty transcript, mic permission denied) shows a specific message.
-- [ ] Runtime dependency sets unchanged (`ws` only on the gateway, zero on
+- [x] Runtime dependency sets unchanged (`ws` only on the gateway, zero on
       the widget); all suites green in CI with 0 vulnerabilities.
 
 ## Out of scope
@@ -59,4 +59,27 @@ the browser.
 
 ## Closure evidence
 
-To be completed at phase close.
+Local verification passed on branch `phase-16/realtime-stt` (2026-06-11):
+
+- [x] `npm test` passed: **244** Python contract tests (13 new in
+      `tests/project/test_phase16_realtime_stt.py`).
+- [x] Gateway Vitest suite passed: **31** tests across 4 files, 11 of
+      them in the new `test/stt.spec.ts` (config fail-closed, protocol
+      parsing, transcriber against mocked fetch, WS audio flow).
+- [x] Widget Vitest suite passed: **14** tests (recorder result
+      handling, `stt_enabled` gating, transcript echo).
+
+Remote verification on PR #30: the first CI round failed `secret-scan` —
+gitleaks (`generic-api-key`, entropy > 3.5) flagged the two STT test
+fixture keys. Because gitleaks scans full history, the fix replaced the
+fixtures with deliberately low-entropy values (`sk-testtesttest`) by
+amending the feature commit (`6b7c734` → `8ee6c81`) and force-pushing,
+leaving no flagged blob reachable. All seven checks green on head
+`8ee6c81` (2026-06-11).
+
+Merge evidence: PR #30 squash-merged into `main` as `4a41c7f` on
+2026-06-11.
+
+Next: server-side TTS and the HeyGen avatar on top of working voice
+input; OpenAI Realtime streaming stays behind the `TranscriptionPort`
+seam for a future media-server phase.
