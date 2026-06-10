@@ -3,7 +3,7 @@ project: AURION
 document: Phase 5 Action Dispatch & Users Administration Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-003, ADR-009, ADR-011, ADR-013, ADR-014, ADR-015
 ---
@@ -86,4 +86,22 @@ Local verification passed on branch `phase-5/dispatch-users` (2026-06-10):
 - [x] `npm --workspace @aurion/api run typecheck` and `build` passed.
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `8c00bee` (2026-06-10), PR #18:
+
+- [x] PR opened: `https://github.com/danielheroiaagen/AURION/pull/18`
+- [x] All six checks green: verify, integration (postgres:16 service),
+      dependency-audit, secret-scan, CodeQL, analyze (javascript-typescript).
+- [x] First CI round caught a fixture collision (`tenants_slug_key` across
+      suites) fixed in `8c00bee` with suite-unique slugs — the integration
+      job is doing its job.
+
+Merge evidence:
+
+- [x] PR #18 squash-merged into `main` as `33ef730` on 2026-06-10 with all
+      six checks green.
+
+Carried follow-ups: external IdP (RS256 + JWKS), generated OpenAPI artifact,
+re-encryption sweep tooling at first rotation (ADR-015), per-tenant derived
+keys ADR when a compliance-bound customer requires provable erasure, HERMES
+receiver-side contract (staleness window + action_id dedupe), and adding
+`integration` to the required status checks on `main`.
