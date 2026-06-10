@@ -3,7 +3,7 @@ project: AURION
 document: Phase 3 Persistence & First Resources Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in_progress
+status: closed
 created_at: 2026-06-10
 related: ADR-008, ADR-009, ADR-011, ADR-012
 ---
@@ -107,4 +107,19 @@ Local verification passed on branch `phase-3/persistence-and-resources`
       token; startup fails closed without `DATA_ENCRYPTION_KEYS` and without
       `DATABASE_URL`.
 
-Remote verification: to be completed at phase close (PR + CI runs).
+Remote verification passed on head `6f87048` (2026-06-10), PR #16:
+
+- [x] PR opened: `https://github.com/danielheroiaagen/AURION/pull/16`
+- [x] CI verify passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27246322784/job/80461047661`
+- [x] CI integration (postgres:16 service) passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27246322784/job/80461047671`
+- [x] Security (dependency audit + secret scan) passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27246322776`
+- [x] CodeQL passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27246322768/job/80461047570`
+
+Merge evidence:
+
+- [x] PR #16 squash-merged into `main` as `e66388c` on 2026-06-10 with all six
+      checks green (verify, integration, dependency-audit, secret-scan,
+      CodeQL, analyze).
+
+Follow-up: consider adding `integration` to the required status checks on
+`main` branch protection now that it exists and is green.
