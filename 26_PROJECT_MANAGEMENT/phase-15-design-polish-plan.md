@@ -3,7 +3,7 @@ project: AURION
 document: Phase 15 Design Polish Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-017, ADR-024
 ---
@@ -37,11 +37,11 @@ ships the demo tooling that produced the walkthrough.
 
 ## Acceptance criteria
 
-- [ ] Both apps build with the token-based stylesheets; no component
+- [x] Both apps build with the token-based stylesheets; no component
       class renamed; runtime dependency sets unchanged (contract-tested).
-- [ ] Every mic failure mode shows a specific message (tested per reason);
+- [x] Every mic failure mode shows a specific message (tested per reason);
       reception path proven by the live round-trip tool.
-- [ ] All suites pass locally and in CI with 0 vulnerabilities.
+- [x] All suites pass locally and in CI with 0 vulnerabilities.
 
 ## Out of scope
 
@@ -50,4 +50,25 @@ ships the demo tooling that produced the walkthrough.
 
 ## Closure evidence
 
-To be completed at phase close.
+Local verification passed on branch `phase-15/design-polish` (2026-06-11):
+
+- [x] `npm test` passed: **231** Python contract tests (8 new in
+      `tests/project/test_phase15_design.py`).
+- [x] `npm run test:widget` passed: **8** Vitest tests covering every
+      `ListenResult` failure reason.
+- [x] `node --check` clean on both demo tools.
+
+Remote verification on PR #29: the first CodeQL round flagged 2 new
+alerts in the demo tooling (`js/request-forgery` critical,
+`js/user-controlled-bypass` high). Both were fixed, not dismissed —
+action ids are accepted only as literal UUIDs and every API path segment
+is URI-encoded (`2923a9f`); mic-check tracks the protocol sequence
+locally and never exits from network input (`9bf8f46`). All seven checks
+green on head `2923a9f` (2026-06-11).
+
+Merge evidence: PR #29 squash-merged into `main` as `80040f1` on
+2026-06-11.
+
+Next (authorized by Daniel on 2026-06-11): phase 16 replaces the broken
+browser STT with a server-side OpenAI transcription port behind the
+gateway — the real fix for the mic that this phase made diagnosable.
