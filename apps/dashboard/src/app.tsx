@@ -5,6 +5,7 @@ import { AuthProvider } from './auth/auth-context';
 import { ProtectedLayout } from './components/layout';
 import { ActionsPage } from './pages/actions';
 import { AuditPage } from './pages/audit';
+import { CallbackPage } from './pages/callback';
 import { KnowledgePage } from './pages/knowledge';
 import { LoginPage } from './pages/login';
 import { SessionsPage } from './pages/sessions';
@@ -17,6 +18,7 @@ export function App(): ReactNode {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/callback" element={<CallbackPage />} />
           <Route element={<ProtectedLayout />}>
             <Route index element={<Navigate to="/actions" replace />} />
             <Route path="/actions" element={<ActionsPage />} />
