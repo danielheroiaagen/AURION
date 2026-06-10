@@ -1,0 +1,25 @@
+/* AURION caller widget — scoped, minimal, zero dependencies (ADR-024). */
+#aurion-widget { font-family: system-ui, sans-serif; max-width: 420px; margin: 2rem auto; }
+.aw-card { border: 1px solid #2c3340; border-radius: 12px; background: #171a21; color: #e6e9ef; padding: 1rem; }
+.aw-header { font-weight: 700; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+.aw-setup label, .aw-compose { display: block; margin-bottom: 0.6rem; font-size: 0.85rem; color: #9aa3b2; }
+.aw-setup input, .aw-compose input {
+  width: 100%; margin-top: 0.25rem; padding: 0.45rem 0.6rem; border-radius: 6px;
+  border: 1px solid #2c3340; background: #0f1115; color: #e6e9ef; font: inherit;
+}
+.aw-card button {
+  background: #1f242e; color: #e6e9ef; border: 1px solid #2c3340; border-radius: 6px;
+  padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.85rem;
+}
+.aw-card button:hover:not(:disabled) { border-color: #4f8cff; }
+.aw-card button:disabled { opacity: 0.5; }
+.aw-primary { background: #4f8cff; border-color: #4f8cff; color: #fff; }
+.aw-transcript { max-height: 260px; overflow-y: auto; margin-bottom: 0.6rem; }
+.aw-line { margin: 0.3rem 0; padding: 0.45rem 0.6rem; border-radius: 8px; font-size: 0.9rem; }
+.aw-caller { background: #1f2a3d; margin-left: 2rem; }
+.aw-agent { background: #1f242e; margin-right: 2rem; }
+.aw-compose { display: flex; gap: 0.4rem; }
+.aw-compose input { flex: 1; margin-top: 0; }
+.aw-chip { display: block; margin: 0.25rem 0; font-size: 0.78rem; color: #e0a93c; border-color: #e0a93c; }
+.aw-end { margin-top: 0.6rem; color: #e05c5c; border-color: #e05c5c; }
+.aw-status { margin-top: 0.5rem; font-size: 0.8rem; color: #9aa3b2; min-height: 1.2em; }

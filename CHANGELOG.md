@@ -71,6 +71,14 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-024 caller voice widget (`apps/widget`): embeddable
+  zero-runtime-dependency vanilla-TS widget (2.5 kB gzip) holding a real
+  voice conversation via browser-native speech (recognition + synthesis
+  stay local; the wire carries the existing ADR-018 text-turn protocol),
+  reconnect-resume via `external_session_id`, approval-pending transparency
+  surfaced to the caller, automatic text fallback where speech is
+  unavailable. The media server (WebRTC/SIP) is explicitly deferred to the
+  telephony phase with its own ADR.
 - ADR-023 metrics & supervision: tenant-scoped
   `GET /api/v1/metrics/overview` (new `metrics:read` permission; SQL
   aggregates inside RLS; rates are `null` on zero denominators, approval

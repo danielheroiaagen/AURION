@@ -70,6 +70,15 @@ jobs:
       - name: Build voice gateway
         run: npm --workspace @aurion/voice-gateway run build
 
+      - name: Typecheck widget
+        run: npm --workspace @aurion/widget run typecheck
+
+      - name: Run widget unit tests
+        run: npm --workspace @aurion/widget run test
+
+      - name: Build widget
+        run: npm --workspace @aurion/widget run build
+
       - name: Typecheck hermes receiver
         run: npm --workspace @aurion/hermes-receiver run typecheck
 
