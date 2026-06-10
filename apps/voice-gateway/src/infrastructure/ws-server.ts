@@ -4,7 +4,8 @@ import type { IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 
 import { ConversationEngine, EngineError } from '../application/conversation-engine.js';
-import type { AgentBrainPort, AurionApiPort } from '../application/ports.js';
+import type { AgentBrainPort, AurionApiPort, TranscriptionPort } from '../application/ports.js';
+import { TranscriptionError } from './openai-transcriber.js';
 import {
   parseClientEvent,
   ProtocolError,
@@ -23,6 +24,9 @@ export interface WsServerOptions {
   readonly clientKeys: readonly string[];
   readonly api: AurionApiPort;
   readonly brain: AgentBrainPort;
+  /** Server-side STT (ADR-025); null answers audio.utterance with stt_disabled. */
+  readonly transcriber: TranscriptionPort | null;
+  readonly maxAudioBytes?: number;
   readonly log?: (message: string) => void;
 }
 
@@ -46,6 +50,19 @@ export function startWsServer(options: WsServerOptions): WebSocketServer {
       }
     };
 
+    const runTurn = async (text: string): Promise<void> => {
+      const result = await engine.userTurn(text);
+      if (result.requestedAction) {
+        send({
+          type: 'action.requested',
+          action_id: result.requestedAction.actionId,
+          action_type: result.requestedAction.actionType,
+          approval_pending: true,
+        });
+      }
+      send({ type: 'turn.agent', text: result.reply });
+    };
+
     socket.on('message', (raw) => {
       void (async () => {
         try {
@@ -55,20 +72,46 @@ export function startWsServer(options: WsServerOptions): WebSocketServer {
               const sessionId = await engine.start(
                 event.external_session_id ?? `vg-${randomUUID()}`,
               );
-              send({ type: 'session.started', session_id: sessionId });
+              send({
+                type: 'session.started',
+                session_id: sessionId,
+                stt_enabled: options.transcriber !== null,
+              });
               break;
             }
             case 'turn.user': {
-              const result = await engine.userTurn(event.text);
-              if (result.requestedAction) {
+              await runTurn(event.text);
+              break;
+            }
+            case 'audio.utterance': {
+              // Capture changes, authority does not (ADR-025): a transcribed
+              // utterance runs the SAME turn path as a typed one.
+              if (!options.transcriber) {
                 send({
-                  type: 'action.requested',
-                  action_id: result.requestedAction.actionId,
-                  action_type: result.requestedAction.actionType,
-                  approval_pending: true,
+                  type: 'error',
+                  code: 'stt_disabled',
+                  message: 'This gateway has no speech-to-text configured.',
                 });
+                break;
               }
-              send({ type: 'turn.agent', text: result.reply });
+              const audio = Buffer.from(event.audio, 'base64');
+              if (audio.length === 0 || audio.length > (options.maxAudioBytes ?? 2_000_000)) {
+                send({
+                  type: 'error',
+                  code: 'audio_too_large',
+                  message: 'Utterance audio is empty or exceeds the size cap.',
+                });
+                break;
+              }
+              const text = await options.transcriber.transcribe({
+                audio,
+                mimeType: event.mime_type,
+                lang: event.lang,
+              });
+              send({ type: 'audio.transcript', text });
+              if (text.length > 0) {
+                await runTurn(text);
+              }
               break;
             }
             case 'action.poll': {
@@ -87,6 +130,11 @@ export function startWsServer(options: WsServerOptions): WebSocketServer {
         } catch (error) {
           if (error instanceof ProtocolError || error instanceof EngineError) {
             send({ type: 'error', code: error.code, message: error.message });
+            return;
+          }
+          if (error instanceof TranscriptionError) {
+            log(`stt failure: ${error.message}`);
+            send({ type: 'error', code: 'stt_failed', message: 'Speech could not be transcribed.' });
             return;
           }
           log(`upstream failure: ${error instanceof Error ? error.message : String(error)}`);

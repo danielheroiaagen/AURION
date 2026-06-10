@@ -120,6 +120,24 @@ describe('ConversationClient', () => {
     expect(callbacks.onEvent).not.toHaveBeenCalled();
   });
 
+  it('ships recorded utterances for server-side STT (ADR-025)', async () => {
+    const { client, socket, callbacks } = await connected();
+    client.sendUtterance('QmFzZTY0', 'audio/webm', 'es-ES');
+    expect(JSON.parse(socket.sent[1])).toEqual({
+      type: 'audio.utterance',
+      audio: 'QmFzZTY0',
+      mime_type: 'audio/webm',
+      lang: 'es-ES',
+    });
+
+    // The gateway's honesty events flow through: stt capability + transcript echo.
+    socket.receive({ type: 'session.started', session_id: 'vs-1', stt_enabled: true });
+    socket.receive({ type: 'audio.transcript', text: 'hola' });
+    expect(callbacks.onEvent).toHaveBeenCalledTimes(2);
+    expect(callbacks.onEvent.mock.calls[0][0].stt_enabled).toBe(true);
+    expect(callbacks.onEvent.mock.calls[1][0]).toEqual({ type: 'audio.transcript', text: 'hola' });
+  });
+
   it('ending the call spends the resume id', async () => {
     const { client } = await connected();
     const id = resumableSessionId();

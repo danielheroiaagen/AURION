@@ -71,6 +71,15 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-025 server-side speech-to-text (`STT_MODE=openai`): the gateway
+  transcribes recorded caller utterances through a `TranscriptionPort`
+  (OpenAI `/audio/transcriptions` via plain fetch — runtime deps stay
+  `ws`-only) and runs the SAME approval-gated turn path; new additive WS
+  events `audio.utterance`/`audio.transcript` + `stt_enabled` flag. The
+  widget records push-to-talk audio locally (`MediaRecorder`) and never
+  sees the provider key; Chrome's failing online recognizer is demoted to
+  fallback. This removes the root cause of the broken mic that phase 15
+  made diagnosable.
 - Design tokens v1 "deep ocean" (`20_DESIGN_SYSTEM/design-tokens.md`,
   implemented): one palette/type/interaction language for dashboard and
   widget, CSS-only (no class renames, no new dependencies), visible

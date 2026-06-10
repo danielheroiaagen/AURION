@@ -89,6 +89,16 @@
 .aw-compose { display: flex; gap: 0.45rem; margin-bottom: 0.2rem; }
 .aw-compose input { flex: 1; margin-top: 0; }
 .aw-mic { font-size: 1rem; }
+/* Recording state is shown, not implied: red ring + pulse while capturing. */
+.aw-mic.aw-recording {
+  color: var(--danger);
+  border-color: rgba(239, 99, 99, 0.6) !important;
+  background: rgba(239, 99, 99, 0.1) !important;
+  animation: aw-pulse 1.2s ease-in-out infinite;
+}
+@keyframes aw-pulse {
+  50% { box-shadow: 0 0 0 4px rgba(239, 99, 99, 0.18); }
+}
 
 .aw-chip {
   display: block;

@@ -17,12 +17,14 @@ export class ProtocolError extends Error {
 export type ClientEvent =
   | { type: 'session.start'; external_session_id?: string }
   | { type: 'turn.user'; text: string }
+  | { type: 'audio.utterance'; audio: string; mime_type: string; lang?: string }
   | { type: 'action.poll'; action_id: string }
   | { type: 'session.end'; outcome?: string };
 
 export type ServerEvent =
-  | { type: 'session.started'; session_id: string }
+  | { type: 'session.started'; session_id: string; stt_enabled: boolean }
   | { type: 'turn.agent'; text: string }
+  | { type: 'audio.transcript'; text: string }
   | {
       type: 'action.requested';
       action_id: string;
@@ -59,6 +61,23 @@ export function parseClientEvent(raw: unknown): ClientEvent {
         throw new ProtocolError('bad_message', 'turn.user requires non-empty text.');
       }
       return { type: 'turn.user', text: event.text };
+    }
+    case 'audio.utterance': {
+      if (typeof event.audio !== 'string' || event.audio.length === 0) {
+        throw new ProtocolError('bad_message', 'audio.utterance requires base64 audio.');
+      }
+      if (typeof event.mime_type !== 'string' || !/^audio\//.test(event.mime_type)) {
+        throw new ProtocolError('bad_message', 'audio.utterance requires an audio/* mime_type.');
+      }
+      if (event.lang !== undefined && typeof event.lang !== 'string') {
+        throw new ProtocolError('bad_message', 'lang must be a string.');
+      }
+      return {
+        type: 'audio.utterance',
+        audio: event.audio,
+        mime_type: event.mime_type,
+        lang: event.lang as string | undefined,
+      };
     }
     case 'action.poll': {
       if (typeof event.action_id !== 'string' || event.action_id.length === 0) {

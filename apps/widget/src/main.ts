@@ -1,6 +1,13 @@
 import { ConversationClient } from './conversation-client';
 import type { ServerEvent } from './protocol';
 import {
+  RECORD_FAILURE_MESSAGES,
+  STT_ERROR_MESSAGES,
+  recordingAvailable,
+  startRecording,
+  type ActiveRecording,
+} from './recorder';
+import {
   LISTEN_FAILURE_MESSAGES,
   listenOnce,
   speak,
@@ -13,6 +20,10 @@ import './styles.css';
  * Minimal call UI (ADR-024): connect → talk (mic push-to-talk when the
  * platform can listen, text always) → see actions await human approval →
  * end. Vanilla DOM, zero dependencies.
+ *
+ * Mic capture prefers gateway STT (ADR-025): record locally, transcribe
+ * server-side. The browser's online recognizer is only the fallback when
+ * the gateway reports stt_enabled: false.
  */
 const LANG = navigator.language || 'es-ES';
 const root = document.getElementById('aurion-widget')!;
@@ -53,6 +64,8 @@ const endButton = root.querySelector<HTMLButtonElement>('.aw-end')!;
 const status = root.querySelector<HTMLElement>('.aw-status')!;
 
 let client: ConversationClient | null = null;
+let gatewayStt = false;
+let recording: ActiveRecording | null = null;
 
 function line(speaker: 'caller' | 'agent', text: string): void {
   const element = document.createElement('p');
@@ -76,6 +89,17 @@ function handleEvent(event: ServerEvent): void {
   switch (event.type) {
     case 'session.started':
       status.textContent = 'Connected. The agent is listening.';
+      gatewayStt = event.stt_enabled === true && recordingAvailable();
+      micButton.hidden = !gatewayStt && !speechInputAvailable();
+      break;
+    case 'audio.transcript':
+      // The gateway's echo of what it heard (ADR-025). Empty = nothing heard.
+      if (event.text) {
+        status.textContent = '';
+        line('caller', event.text);
+      } else {
+        status.textContent = LISTEN_FAILURE_MESSAGES['no-speech'];
+      }
       break;
     case 'turn.agent':
       line('agent', event.text);
@@ -100,7 +124,12 @@ function handleEvent(event: ServerEvent): void {
       client?.disconnect();
       break;
     case 'error':
-      status.textContent = `Problem: ${event.message}`;
+      status.textContent = STT_ERROR_MESSAGES[event.code] ?? `Problem: ${event.message}`;
+      if (event.code === 'stt_disabled') {
+        // The gateway cannot listen after all: fall back honestly.
+        gatewayStt = false;
+        micButton.hidden = !speechInputAvailable();
+      }
       break;
   }
 }
@@ -125,7 +154,8 @@ setup.addEventListener('submit', (submitEvent) => {
     .then(() => {
       setup.hidden = true;
       call.hidden = false;
-      micButton.hidden = !speechInputAvailable();
+      // Provisional until session.started reports whether the gateway listens.
+      micButton.hidden = !recordingAvailable() && !speechInputAvailable();
     })
     .catch((error: Error) => {
       status.textContent = error.message;
@@ -143,7 +173,7 @@ compose.addEventListener('submit', (submitEvent) => {
   }
 });
 
-micButton.addEventListener('click', () => {
+function listenLocally(): void {
   micButton.disabled = true;
   status.textContent = 'Listening… habla ahora';
   void listenOnce(LANG).then((result) => {
@@ -160,6 +190,40 @@ micButton.addEventListener('click', () => {
       status.textContent = LISTEN_FAILURE_MESSAGES[result.reason] ?? 'No se pudo capturar audio.';
     }
   });
+}
+
+/** Gateway STT (ADR-025): first press records, second press sends. */
+async function recordForGateway(): Promise<void> {
+  if (recording) {
+    const active = recording;
+    recording = null;
+    micButton.classList.remove('aw-recording');
+    status.textContent = 'Transcribiendo…';
+    active.stop();
+    const result = await active.result;
+    if (!result.ok) {
+      status.textContent = RECORD_FAILURE_MESSAGES[result.reason] ?? 'No se pudo grabar audio.';
+      return;
+    }
+    client?.sendUtterance(result.audioBase64, result.mimeType, LANG);
+    return;
+  }
+  const started = await startRecording();
+  if (!started.ok) {
+    status.textContent = RECORD_FAILURE_MESSAGES[started.reason] ?? 'No se pudo grabar audio.';
+    return;
+  }
+  recording = started;
+  micButton.classList.add('aw-recording');
+  status.textContent = 'Grabando… pulsa el micro otra vez para enviar.';
+}
+
+micButton.addEventListener('click', () => {
+  if (gatewayStt) {
+    void recordForGateway();
+    return;
+  }
+  listenLocally();
 });
 
 endButton.addEventListener('click', () => {

@@ -69,6 +69,11 @@ export class ConversationClient {
     this.send({ type: 'turn.user', text });
   }
 
+  /** One recorded utterance for server-side transcription (ADR-025). */
+  sendUtterance(audioBase64: string, mimeType: string, lang?: string): void {
+    this.send({ type: 'audio.utterance', audio: audioBase64, mime_type: mimeType, lang });
+  }
+
   pollAction(actionId: string): void {
     this.send({ type: 'action.poll', action_id: actionId });
   }

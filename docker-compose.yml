@@ -83,6 +83,10 @@ services:
       VOICE_AGENT_TOKEN: ${VOICE_AGENT_TOKEN:?set VOICE_AGENT_TOKEN}
       VOICE_GATEWAY_CLIENT_KEYS: ${VOICE_GATEWAY_CLIENT_KEYS:?set VOICE_GATEWAY_CLIENT_KEYS}
       BRAIN_MODE: ${BRAIN_MODE:-scripted}
+      # Server-side STT (ADR-025). The provider key lives HERE, never in a browser.
+      STT_MODE: ${STT_MODE:-off}
+      STT_API_KEY: ${STT_API_KEY:-}
+      STT_MODEL: ${STT_MODEL:-gpt-4o-mini-transcribe}
     ports:
       - '${GATEWAY_HOST_PORT:-8080}:8080'
     depends_on:

@@ -5,7 +5,7 @@ folder: 27_VOICE_IVR
 owner: Daniel Gonzalez Junco
 status: active
 created_at: 2026-06-10
-related: ADR-009, ADR-013, ADR-018
+related: ADR-009, ADR-013, ADR-018, ADR-025
 ---
 
 # Voice gateway WebSocket event contracts
@@ -29,6 +29,7 @@ One connection = at most one conversation.
 |------|---------|-----------|
 | `session.start` | `external_session_id?` | Begin the conversation. Replaying the same `external_session_id` resumes idempotently (ADR-013 natural idempotency). |
 | `turn.user` | `text` | One caller utterance. The gateway answers with `turn.agent`, possibly preceded by `action.requested`. |
+| `audio.utterance` | `audio` (base64), `mime_type`, `lang?` | One recorded push-to-talk capture (ADR-025). The gateway transcribes it server-side, echoes `audio.transcript`, and — when text was heard — runs the SAME turn path as `turn.user`. Size-capped; oversized audio is answered with `audio_too_large`. |
 | `action.poll` | `action_id` | Ask for the current status of a previously requested action. |
 | `session.end` | `outcome?` | Close the conversation. The gateway persists the summary and confirms with `session.ended`. |
 
@@ -36,12 +37,13 @@ One connection = at most one conversation.
 
 | Type | Payload | Semantics |
 |------|---------|-----------|
-| `session.started` | `session_id` | The API session is live (`active`). |
+| `session.started` | `session_id`, `stt_enabled` | The API session is live (`active`). `stt_enabled` tells the client honestly whether the gateway can transcribe audio (ADR-025). |
+| `audio.transcript` | `text` | What the gateway understood from the last `audio.utterance`. Empty text means nothing was heard — no turn runs. |
 | `turn.agent` | `text` | The agent's reply for the last user turn. |
 | `action.requested` | `action_id`, `action_type`, `approval_pending: true` | The agent asked AURION to do something. The gateway is a `voice_agent`: execution ALWAYS awaits human approval (ADR-007/ADR-013) — the caller is told the request was registered, never that it ran. |
 | `action.update` | `action_id`, `status` | Answer to `action.poll` (`requested`, `approved`, `rejected`, `executed`, `failed`). |
 | `session.ended` | `session_id`, `status` | Lifecycle closed (`completed`, or `failed` on abort). |
-| `error` | `code`, `message` | Protocol or upstream failure. `code` is stable (`bad_message`, `no_session`, `session_already_started`, `upstream_failed`). |
+| `error` | `code`, `message` | Protocol or upstream failure. `code` is stable (`bad_message`, `no_session`, `session_already_started`, `upstream_failed`, `stt_disabled`, `audio_too_large`, `stt_failed`). |
 
 ## Ordering and delivery rules
 
@@ -56,6 +58,7 @@ One connection = at most one conversation.
 
 ## Extension points (additive, not breaking)
 
-- `audio.frame` / `audio.transcript` event types for streamed audio once a
-  realtime speech provider adapter lands (ADR-018).
+- `audio.frame` for STREAMED audio (partial transcripts, barge-in) once the
+  media-server phase lands a realtime provider adapter — `audio.utterance`
+  (ADR-025) is the single-shot push-to-talk form.
 - Signed per-caller call grants in the handshake (deployment phase).
