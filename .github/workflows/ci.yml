@@ -52,6 +52,15 @@ jobs:
           npm run openapi:generate
           git diff --exit-code -- 32_API_REFERENCE/openapi.json
 
+      - name: Typecheck dashboard
+        run: npm --workspace @aurion/dashboard run typecheck
+
+      - name: Run dashboard unit tests
+        run: npm --workspace @aurion/dashboard run test
+
+      - name: Build dashboard
+        run: npm --workspace @aurion/dashboard run build
+
   integration:
     name: integration
     runs-on: ubuntu-latest
