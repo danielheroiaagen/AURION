@@ -71,6 +71,15 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-020 containerized deployment: multi-stage non-root images for all
+  four services, one compose stack (postgres + one-shot migrate + api +
+  receiver + gateway, `full` profile adds dashboard + single-origin Caddy
+  edge), VPS runbook, and an end-to-end CI harness (`npm run e2e`) that
+  drives the REAL product loop across containers: WS conversation →
+  approval-pending action → human approval → HMAC-signed dispatch into the
+  receiver → stub evidence encrypted at rest → session completed with
+  summary. Plain-http dispatch to private networks now requires the
+  explicit `HERMES_DISPATCH_ALLOW_INSECURE_HTTP` flag.
 - ADR-019 HERMES dispatch receiver (`apps/hermes-receiver`):
   zero-runtime-dependency Node service implementing the receiver contract —
   constant-time HMAC verification over raw bytes BEFORE parsing, 300s

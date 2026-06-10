@@ -37,9 +37,17 @@ export function loadDispatchConfig(env: NodeJS.ProcessEnv = process.env): Dispat
   }
 
   const url = env.HERMES_DISPATCH_URL;
-  if (!url || (!url.startsWith('https://') && !LOCAL_HTTP_PATTERN.test(url))) {
+  // Private-network escape hatch (ADR-020): compose-internal service DNS is
+  // plain http; it must be requested explicitly and never defaults on.
+  const allowInsecureHttp = env.HERMES_DISPATCH_ALLOW_INSECURE_HTTP === 'true';
+  const acceptable =
+    !!url &&
+    (url.startsWith('https://') ||
+      LOCAL_HTTP_PATTERN.test(url) ||
+      (allowInsecureHttp && url.startsWith('http://')));
+  if (!acceptable) {
     throw new Error(
-      'HERMES_DISPATCH_URL is required in hermes mode and must use https:// (plain http only for localhost).',
+      'HERMES_DISPATCH_URL is required in hermes mode and must use https:// (plain http only for localhost, or private networks with HERMES_DISPATCH_ALLOW_INSECURE_HTTP=true).',
     );
   }
 
