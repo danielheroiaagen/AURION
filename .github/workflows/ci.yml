@@ -61,6 +61,15 @@ jobs:
       - name: Build dashboard
         run: npm --workspace @aurion/dashboard run build
 
+      - name: Typecheck voice gateway
+        run: npm --workspace @aurion/voice-gateway run typecheck
+
+      - name: Run voice gateway unit tests
+        run: npm --workspace @aurion/voice-gateway run test
+
+      - name: Build voice gateway
+        run: npm --workspace @aurion/voice-gateway run build
+
   integration:
     name: integration
     runs-on: ubuntu-latest

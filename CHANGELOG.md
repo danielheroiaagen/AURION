@@ -71,6 +71,16 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-018 realtime voice gateway (`apps/voice-gateway`): dependency-light
+  Node service (runtime dep: `ws` only) orchestrating conversations over the
+  WebSocket event contract deferred since ADR-009
+  (`27_VOICE_IVR/websocket-event-contracts.md`). The gateway is a
+  `voice_agent`: tool intents become approval-pending action requests with
+  turn-keyed idempotency (`vg:<session>:<turn>`); it has no execute path.
+  Sessions close `completed` with a transcript-derived summary or `failed`
+  on abrupt drops — silence is never an outcome. `ScriptedBrain` is the
+  deterministic dev/CI adapter behind `AgentBrainPort`; realtime model
+  providers plug in behind the same port.
 - ADR-017 admin dashboard (`apps/dashboard`): Vite + React SPA with a
   minimal runtime dependency tree (react, react-dom, react-router-dom);
   sessionStorage-held bearer sessions (401 = session death, claims are UX
