@@ -26,8 +26,10 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'tenant:settings:update',
     'conversation:read',
     'conversation:review',
+    'conversation:write',
     'knowledge:read',
     'knowledge:write',
+    'action:read',
     'tool:execute:calendar.update',
     'tool:execute:ticket.create',
     'audit:read',
@@ -40,6 +42,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'conversation:read',
     'conversation:review',
     'knowledge:read',
+    'action:read',
     'tool:execute:ticket.create',
     'audit:read',
   ]),
@@ -58,21 +61,26 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'conversation:read',
     'conversation:review',
     'knowledge:read',
+    'action:read',
     'audit:read',
   ]),
 
   // Machine actor: narrow read + tool execution, always gated by policy/approval.
   // `knowledge:read` is the agent's core capability: answering from the
-  // tenant's published knowledge base.
+  // tenant's published knowledge base. `conversation:write` lets the runtime
+  // create and advance its own sessions; `action:read` lets it poll the
+  // approval status of actions it requested.
   voice_agent: new Set<Permission>([
     'conversation:read',
+    'conversation:write',
     'knowledge:read',
+    'action:read',
     'tool:execute:calendar.update',
     'tool:execute:ticket.create',
   ]),
 
-  // Internal system jobs receive explicit grants per use case later.
-  system: new Set<Permission>([]),
+  // Internal system jobs: session ingestion/cleanup only (ADR-013).
+  system: new Set<Permission>(['conversation:write']),
 };
 
 export function roleGrants(subject: PolicySubject, permission: Permission): boolean {
