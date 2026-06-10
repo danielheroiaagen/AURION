@@ -3,7 +3,7 @@ project: AURION
 document: Phase 4 Voice Sessions & Controlled Actions Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in_progress
+status: closed
 created_at: 2026-06-10
 related: ADR-009, ADR-011, ADR-012, ADR-013
 ---
@@ -81,4 +81,21 @@ Local verification passed on branch `phase-4/voice-sessions-actions`
 - [x] `npm --workspace @aurion/api run typecheck` and `build` passed.
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: to be completed at phase close (PR + CI runs).
+Remote verification passed on head `1d82bc0` (2026-06-10), PR #17:
+
+- [x] PR opened: `https://github.com/danielheroiaagen/AURION/pull/17`
+- [x] CI verify passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27247047660/job/80463263931`
+- [x] CI integration (postgres:16 service) passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27247047660/job/80463263914`
+- [x] Security (dependency audit + secret scan) passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27247047678`
+- [x] CodeQL passed: `https://github.com/danielheroiaagen/AURION/actions/runs/27247047685/job/80463263945`
+
+Merge evidence:
+
+- [x] PR #17 squash-merged into `main` as `3444fb5` on 2026-06-10 with all six
+      checks green (verify, integration, dependency-audit, secret-scan,
+      CodeQL, analyze).
+
+With this phase the six MVP contract groups from ADR-009 are implemented and
+verified end to end. Carried follow-ups: HERMES connector dispatch behind the
+execute port, key-rotation/crypto-shredding ADR, external IdP, and adding
+`integration` to the required status checks on `main`.
