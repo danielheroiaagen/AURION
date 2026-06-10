@@ -3,62 +3,62 @@ project: AURION
 document: Design Tokens
 folder: 20_DESIGN_SYSTEM
 owner: Daniel Gonzalez Junco
-status: draft-v2
+status: active-v1
 created_at: 2026-05-30
-architecture: Hexagonal Architecture + Clean Architecture
-primary_database: PostgreSQL
+updated_at: 2026-06-10
+related: ADR-017, ADR-024
 ---
 
-# Design Tokens
+# AURION design tokens (v1 — implemented)
 
-## Objetivo
-Este documento protege la coherencia visual y de experiencia para que AURION parezca una plataforma enterprise y no una demo improvisada.
+One visual language for the dashboard and the caller widget, expressed as
+CSS custom properties — no UI kit, no font downloads (system stack), no new
+dependencies (ADR-017/ADR-024 rules hold). Every surface reads from these
+tokens: restyling the product means editing tokens, not components. This
+replaces the v0 placeholder; the goal it stated stands — AURION must look
+like an enterprise platform, not an improvised demo.
 
-## Alcance
-Este documento pertenece a **20_DESIGN_SYSTEM** y forma parte del paquete documental maestro de AURION. Su función es impedir improvisación, alinear a agentes IA y humanos, y mantener una ejecución profesional.
+## Palette — "deep ocean"
 
-## Decisiones no negociables
-- Diseño premium, claro, accesible y empresarial.
-- Cada patrón visual debe poder reutilizarse.
-- La estética nunca debe sacrificar legibilidad ni confianza.
-- El avatar debe inspirar seguridad, no rareza ni distracción.
+| Token | Value | Use |
+|-------|-------|-----|
+| `--bg` | `#0b0e14` | App background |
+| `--surface` | `#121722` | Cards, sidebar |
+| `--surface-2` | `#1a2130` | Inputs, hovers, table headers |
+| `--border` | `#232c3d` | Hairlines |
+| `--text` | `#e8ecf4` | Primary text |
+| `--text-dim` | `#8b96aa` | Secondary text, labels |
+| `--accent` | `#5b8cff` | Actions, links, focus |
+| `--accent-2` | `#7c5bff` | Gradient end (brand) |
+| `--ok` | `#34c97e` | Success states |
+| `--warn` | `#eab348` | Pending/attention |
+| `--danger` | `#ef6363` | Errors, destructive |
 
-## Directrices específicas
-- Mantener lenguaje claro, operativo y verificable.
-- Separar decisiones de negocio, producto, arquitectura y ejecución.
-- Registrar cualquier decisión relevante en el documento adecuado o en un ADR.
-- Evitar soluciones mágicas, genéricas o difíciles de auditar.
-- Diseñar siempre pensando en clientes reales, datos reales, llamadas reales y soporte real.
+Brand mark: a 2-color gradient (`--accent` → `--accent-2`) on the wordmark
+dot, primary buttons and KPI values — the only decorative flourish;
+everything else is restraint.
 
-## Entregables esperados
-- Especificación clara.
-- Criterios de aceptación.
-- Riesgos y dependencias.
-- Relación con arquitectura hexagonal, Clean Architecture y PostgreSQL cuando aplique.
-- Checklist de revisión para humanos y agentes IA.
+## Type & rhythm
 
-## Checklist obligatorio para IA
-- [ ] Objetivo entendido y escrito.
-- [ ] Documentos relacionados revisados.
-- [ ] Restricciones de arquitectura respetadas.
-- [ ] Seguridad, permisos y auditoría considerados.
-- [ ] Pruebas o criterios de validación definidos.
-- [ ] Impacto en cliente, negocio y operaciones evaluado.
-- [ ] Changelog o decisión actualizada si aplica.
+- System stack (`system-ui, -apple-system, "Segoe UI", sans-serif`);
+  base 15px, line-height 1.5.
+- Headings 600–700 weight; letter-spacing only on the wordmark.
+- Spacing scale 4/8/12/16/24/32 px. Radius: 8px controls, 12px cards,
+  999px badges.
+- Elevation: one soft card shadow; hover raises borders, never shadows.
 
-## Antipatrones prohibidos
-- Crear funcionalidad sin caso de uso.
-- Copiar patrones sin adaptarlos a AURION.
-- Omitir permisos, trazabilidad o manejo de errores.
-- Documentar de forma vaga.
-- Mezclar responsabilidades que deben estar separadas.
+## Interaction rules
 
-## Documentos relacionados
-- `00_GOVERNANCE/vision.md`
-- `02_PRODUCT/prd.md`
-- `03_ARCHITECTURE/architecture.md`
-- `08_DEVELOPMENT/agent.md`
-- `11_TESTING/testing-strategy.md`
+- Visible `:focus-visible` ring (2px `--accent`) on every focusable element
+  — keyboard users are first-class (see `accessibility-design.md`).
+- Transitions 120ms ease on color/border only; nothing moves on its own
+  (see `motion-design.md`).
+- Status colors always pair with text (badges carry words, not just color)
+  — color-blind safe by construction.
 
-## Estado
-Documento vivo. Debe actualizarse cuando cambie producto, arquitectura, mercado, seguridad o proceso operativo.
+## Scope
+
+Implemented in `apps/dashboard/src/styles.css` and
+`apps/widget/src/styles.css`. Component class names are stable contracts;
+design changes are token/CSS changes only. A future per-tenant theming API
+for the widget would expose exactly these tokens.

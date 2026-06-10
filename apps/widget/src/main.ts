@@ -1,6 +1,12 @@
 import { ConversationClient } from './conversation-client';
 import type { ServerEvent } from './protocol';
-import { listenOnce, speak, speechInputAvailable, speechOutputAvailable } from './speech';
+import {
+  LISTEN_FAILURE_MESSAGES,
+  listenOnce,
+  speak,
+  speechInputAvailable,
+  speechOutputAvailable,
+} from './speech';
 import './styles.css';
 
 /**
@@ -139,13 +145,19 @@ compose.addEventListener('submit', (submitEvent) => {
 
 micButton.addEventListener('click', () => {
   micButton.disabled = true;
-  status.textContent = 'Listening…';
-  void listenOnce(LANG).then((text) => {
+  status.textContent = 'Listening… habla ahora';
+  void listenOnce(LANG).then((result) => {
     micButton.disabled = false;
-    status.textContent = '';
-    if (text && client) {
-      line('caller', text);
-      client.sendTurn(text);
+    if (result.ok && client) {
+      status.textContent = '';
+      line('caller', result.text);
+      client.sendTurn(result.text);
+      return;
+    }
+    // Capture failures are never silent (ADR-024): explain and offer the
+    // text fallback — same conversation, same protocol.
+    if (!result.ok) {
+      status.textContent = LISTEN_FAILURE_MESSAGES[result.reason] ?? 'No se pudo capturar audio.';
     }
   });
 });
