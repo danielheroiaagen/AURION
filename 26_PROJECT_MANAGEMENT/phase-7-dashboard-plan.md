@@ -3,7 +3,7 @@ project: AURION
 document: Phase 7 Admin Dashboard Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-009, ADR-013, ADR-016, ADR-017
 ---
@@ -69,4 +69,19 @@ Local verification passed on branch `phase-7/dashboard` (2026-06-10):
       (static bundle ~80 kB gzip).
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `f03b343` (2026-06-10), PR #20:
+
+- [x] PR opened: `https://github.com/danielheroiaagen/AURION/pull/20`
+- [x] All six checks green on the first CI round: verify (now including
+      dashboard typecheck + tests + build), integration, dependency-audit,
+      secret-scan, CodeQL, analyze (javascript-typescript).
+
+Merge evidence:
+
+- [x] PR #20 squash-merged into `main` as `2277c2a` on 2026-06-10 with all
+      checks green.
+
+Carried follow-ups: OIDC PKCE sign-in against the external IdP,
+component/E2E test suites with deployment environments, realtime views
+behind the WebSocket contracts ADR, metrics views behind the metrics
+backend.
