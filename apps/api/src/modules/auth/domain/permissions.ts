@@ -17,6 +17,7 @@ export const PERMISSIONS = [
   'knowledge:read',
   'knowledge:write',
   'action:read',
+  'metrics:read',
   'tool:execute:calendar.update',
   'tool:execute:ticket.create',
   'audit:read',

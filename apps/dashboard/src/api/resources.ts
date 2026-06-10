@@ -4,6 +4,7 @@ import type {
   ControlledActionResponse,
   KnowledgeDocumentResponse,
   ListResponse,
+  MetricsOverviewResponse,
   TenantResponse,
   TenantUserResponse,
   VoiceSessionResponse,
@@ -112,6 +113,15 @@ export function rejectAction(client: ApiClient, id: string): Promise<ControlledA
 
 export function executeAction(client: ApiClient, id: string): Promise<ControlledActionResponse> {
   return client.post(`/actions/${id}/execute`);
+}
+
+// --- Metrics ---------------------------------------------------------------
+
+export function getMetricsOverview(
+  client: ApiClient,
+  days = 7,
+): Promise<MetricsOverviewResponse> {
+  return client.get('/metrics/overview', { days });
 }
 
 // --- Audit ---------------------------------------------------------------

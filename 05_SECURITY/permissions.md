@@ -67,6 +67,7 @@ Actor máquina con permisos restringidos.
 | `tool:execute:calendar.update` | Sí | Sí, mismo tenant | No | No | No | No | Sí, si la policy lo permite |
 | `tool:execute:ticket.create` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, asignadas | No | No | Sí, si la policy lo permite |
 | `action:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | Sí, acciones propias |
+| `metrics:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
 | `audit:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
 | `deployment:approve` | Sí | No | No | No | No | No | No |
 
