@@ -55,9 +55,11 @@ Actor máquina con permisos restringidos.
 
 | Permiso | Platform Owner | Tenant Admin | Supervisor | Human Agent | Developer/Integrator | Auditor | Voice Agent |
 |---------|----------------|--------------|------------|-------------|----------------------|---------|-------------|
+| `tenant:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
 | `tenant:settings:update` | Sí | Sí, mismo tenant | No | No | Parcial | No | No |
 | `conversation:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, asignadas | No | Sí, mismo tenant | Sí, contexto activo |
 | `conversation:review` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, lectura | No |
+| `knowledge:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, mismo tenant | No | Sí, mismo tenant | Sí, conocimiento publicado |
 | `knowledge:write` | Sí | Sí, mismo tenant | No | No | Parcial | No | No |
 | `tool:execute:calendar.update` | Sí | Sí, mismo tenant | No | No | No | No | Sí, si la policy lo permite |
 | `tool:execute:ticket.create` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, asignadas | No | No | Sí, si la policy lo permite |

@@ -106,4 +106,28 @@ describe('PolicyGuard', () => {
       ForbiddenException,
     );
   });
+
+  it("falls back to the actor's own tenant on flat resource routes", () => {
+    const guard = new PolicyGuard(
+      makeReflector({ [REQUIRED_PERMISSION_KEY]: 'knowledge:read' }),
+      policy,
+    );
+    const request = {
+      params: {},
+      [ACTOR_REQUEST_KEY]: { id: 'u', tenantId: 'tenant-1', type: 'user', role: 'tenant_admin' },
+    };
+    expect(guard.canActivate(makeContext(request))).toBe(true);
+  });
+
+  it('still denies an explicit client-supplied tenant that mismatches the token', () => {
+    const guard = new PolicyGuard(
+      makeReflector({ [REQUIRED_PERMISSION_KEY]: 'knowledge:read' }),
+      policy,
+    );
+    const request = {
+      headers: { 'x-tenant-id': 'tenant-2' },
+      [ACTOR_REQUEST_KEY]: { id: 'u', tenantId: 'tenant-1', type: 'user', role: 'tenant_admin' },
+    };
+    expect(() => guard.canActivate(makeContext(request))).toThrow(ForbiddenException);
+  });
 });

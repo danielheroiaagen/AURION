@@ -23,3 +23,18 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - Executable PostgreSQL MVP core schema migration with reversible `up/down` files.
 - Phase 1 hardening safeguards: tenant-safe user attribution constraints, production-safe Swagger exposure, global request validation, npm 11 CI consistency, and explicit PostgreSQL 15+ migration target.
 - Phase 1 closed through PR #7 after remote PR CI and `main` push CI passed.
+- Phase 2 (PR #8): JWT auth, tenant-scoped RBAC with deny-by-default Policy
+  Guard, database RLS + append-only audit, HTTP edge hardening, and CI
+  security scanning (ADR-010, ADR-011).
+- ADR-012 runtime persistence implementation: Kysely over node-postgres,
+  transaction-local tenant context (`set_config('app.tenant_id', ...)`),
+  checksummed SQL migration runner (`npm run db:migrate` / `db:status`),
+  database-backed authorization audit sink, and AES-256-GCM column encryption
+  with versioned, rotation-ready keys.
+- First tenant-scoped REST resources (ADR-009): tenant administration,
+  knowledge documents with an explicit lifecycle (draft → review → published
+  → archived), and audit evidence reads with opaque cursor pagination.
+- `tenant:read` and `knowledge:read` permissions in the catalog and matrix.
+- Integration test suite against real PostgreSQL (RLS isolation, append-only
+  audit, lifecycle compare-and-set) plus a CI `integration` job with a
+  `postgres:16` service.

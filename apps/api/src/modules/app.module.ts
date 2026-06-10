@@ -3,10 +3,15 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { CorrelationIdMiddleware } from '../common/correlation/correlation-id.middleware';
+import { CryptoModule } from '../common/crypto/crypto.module';
 import { ProblemDetailsFilter } from '../common/errors/problem-details.filter';
 import { loadSecurityConfig } from '../config/security.config';
+import { DatabaseModule } from '../database/database.module';
+import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
+import { TenantsModule } from './tenants/tenants.module';
 
 /**
  * Application composition root.
@@ -27,8 +32,13 @@ import { HealthModule } from './health/health.module';
         };
       },
     }),
+    CryptoModule,
+    DatabaseModule,
     AuthModule,
     HealthModule,
+    TenantsModule,
+    KnowledgeModule,
+    AuditModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

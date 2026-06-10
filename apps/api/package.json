@@ -7,7 +7,8 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "build": "nest build",
-    "test": "jest",
+    "test": "jest --testPathIgnorePatterns=test/integration",
+    "test:integration": "jest --runInBand test/integration",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit"
   },
@@ -20,6 +21,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "helmet": "^8.1.0",
+    "kysely": "^0.28.0",
+    "pg": "^8.16.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0"
   },
@@ -29,6 +32,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.0",
     "jest": "^30.0.0",
     "ts-jest": "^29.0.0",
     "ts-node": "^10.9.0",

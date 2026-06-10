@@ -8,10 +8,13 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security tests.tools.test_create_github_repo",
-    "test:project": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security",
+    "test": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security tests.project.test_phase3_persistence tests.tools.test_create_github_repo",
+    "test:project": "python -m unittest tests.project.test_phase1_foundation tests.project.test_ci_workflow tests.project.test_auth_policy_model tests.project.test_database_migration_strategy tests.project.test_mvp_api_contracts tests.project.test_executable_db_schema tests.project.test_phase2_auth_security tests.project.test_phase3_persistence",
     "test:tools": "python -m unittest tests.tools.test_create_github_repo",
     "test:api": "npm --workspace @aurion/api run test",
+    "test:api:integration": "npm --workspace @aurion/api run test:integration",
+    "db:migrate": "node tools/db/migrate.mjs migrate",
+    "db:status": "node tools/db/migrate.mjs status",
     "lint": "echo \"lint not configured yet\"",
     "typecheck": "echo \"typecheck not configured yet\""
   },

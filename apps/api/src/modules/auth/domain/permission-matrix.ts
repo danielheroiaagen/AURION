@@ -22,9 +22,11 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
   platform_owner: new Set<Permission>([...PERMISSIONS]),
 
   tenant_admin: new Set<Permission>([
+    'tenant:read',
     'tenant:settings:update',
     'conversation:read',
     'conversation:review',
+    'knowledge:read',
     'knowledge:write',
     'tool:execute:calendar.update',
     'tool:execute:ticket.create',
@@ -34,22 +36,37 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
   ]),
 
   supervisor: new Set<Permission>([
+    'tenant:read',
     'conversation:read',
     'conversation:review',
+    'knowledge:read',
     'tool:execute:ticket.create',
     'audit:read',
   ]),
 
-  human_agent: new Set<Permission>(['conversation:read', 'tool:execute:ticket.create']),
+  human_agent: new Set<Permission>([
+    'conversation:read',
+    'knowledge:read',
+    'tool:execute:ticket.create',
+  ]),
 
   // Integrations specialist: integration credentials only at this layer.
   developer_integrator: new Set<Permission>(['integration:credentials.update']),
 
-  auditor: new Set<Permission>(['conversation:read', 'conversation:review', 'audit:read']),
+  auditor: new Set<Permission>([
+    'tenant:read',
+    'conversation:read',
+    'conversation:review',
+    'knowledge:read',
+    'audit:read',
+  ]),
 
   // Machine actor: narrow read + tool execution, always gated by policy/approval.
+  // `knowledge:read` is the agent's core capability: answering from the
+  // tenant's published knowledge base.
   voice_agent: new Set<Permission>([
     'conversation:read',
+    'knowledge:read',
     'tool:execute:calendar.update',
     'tool:execute:ticket.create',
   ]),
