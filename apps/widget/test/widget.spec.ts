@@ -152,23 +152,50 @@ describe('speech availability (graceful degradation)', () => {
     }
     const scope = { SpeechRecognition: FakeRecognition } as unknown as typeof globalThis;
     expect(speechInputAvailable(scope)).toBe(true);
-    expect(await listenOnce('es-ES', scope)).toBe('quiero cambiar mi cita');
+    expect(await listenOnce('es-ES', scope)).toEqual({ ok: true, text: 'quiero cambiar mi cita' });
   });
 
-  it('resolves null on recognition errors instead of throwing', async () => {
-    class FailingRecognition {
-      lang = '';
-      interimResults = false;
-      maxAlternatives = 1;
-      onresult = null;
-      onend: (() => void) | null = null;
-      onerror: ((event: { error: string }) => void) | null = null;
-      start(): void {
-        this.onerror?.({ error: 'not-allowed' });
-      }
-      stop(): void {}
+  it('explains every capture failure — never a silent null (mic UX bug fix)', async () => {
+    function recognizerThat(fire: (recognition: {
+      onerror: ((event: { error: string }) => void) | null;
+      onend: (() => void) | null;
+    }) => void) {
+      return class {
+        lang = '';
+        interimResults = false;
+        maxAlternatives = 1;
+        onresult = null;
+        onend: (() => void) | null = null;
+        onerror: ((event: { error: string }) => void) | null = null;
+        start(): void {
+          fire(this);
+        }
+        stop(): void {}
+      };
     }
-    const scope = { SpeechRecognition: FailingRecognition } as unknown as typeof globalThis;
-    expect(await listenOnce('es-ES', scope)).toBeNull();
+
+    const denied = { SpeechRecognition: recognizerThat((r) => r.onerror?.({ error: 'not-allowed' })) };
+    expect(await listenOnce('es-ES', denied as unknown as typeof globalThis)).toEqual({
+      ok: false,
+      reason: 'not-allowed',
+    });
+
+    const offline = { SpeechRecognition: recognizerThat((r) => r.onerror?.({ error: 'network' })) };
+    expect(await listenOnce('es-ES', offline as unknown as typeof globalThis)).toEqual({
+      ok: false,
+      reason: 'network',
+    });
+
+    // Recognition that ends with neither result nor error = nothing heard.
+    const silent = { SpeechRecognition: recognizerThat((r) => r.onend?.()) };
+    expect(await listenOnce('es-ES', silent as unknown as typeof globalThis)).toEqual({
+      ok: false,
+      reason: 'no-speech',
+    });
+
+    expect(await listenOnce('es-ES', {} as typeof globalThis)).toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
   });
 });

@@ -71,6 +71,16 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- Design tokens v1 "deep ocean" (`20_DESIGN_SYSTEM/design-tokens.md`,
+  implemented): one palette/type/interaction language for dashboard and
+  widget, CSS-only (no class renames, no new dependencies), visible
+  keyboard focus everywhere, status colors always paired with text.
+- Widget mic diagnostics: capture failures are never silent — each reason
+  (`not-allowed`, `no-speech`, `network`, `unavailable`) renders a specific
+  on-screen explanation with the text fallback offered.
+- Demo tooling: `tools/demo/run-demo.mjs` (full-stack bring-up with seeded
+  tenant + live approval workflow) and `tools/demo/mic-check.mjs`
+  (live gateway round-trip).
 - ADR-024 caller voice widget (`apps/widget`): embeddable
   zero-runtime-dependency vanilla-TS widget (2.5 kB gzip) holding a real
   voice conversation via browser-native speech (recognition + synthesis
