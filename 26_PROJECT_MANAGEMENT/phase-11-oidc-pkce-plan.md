@@ -3,7 +3,7 @@ project: AURION
 document: Phase 11 Dashboard OIDC PKCE Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-016, ADR-017, ADR-021
 ---
@@ -62,4 +62,11 @@ Local verification passed on branch `phase-11/oidc-pkce` (2026-06-10):
 - [x] Dashboard typecheck and build passed (~81 kB gzip).
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `a471dcc` (2026-06-10), PR #25: all
+seven checks green (one infrastructure-flaky `integration` run — registry
+pull failure on the runner — passed on re-run; no code change involved).
+
+Merge evidence: PR #25 squash-merged into `main` as `0a18fce` on 2026-06-10.
+
+Carried follow-ups: silent renewal/refresh tokens, RP-initiated logout —
+when an IdP is chosen and onboarded.
