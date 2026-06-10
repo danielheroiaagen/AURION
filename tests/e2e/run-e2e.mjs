@@ -130,6 +130,26 @@ async function seed() {
   await client.end();
 }
 
+/**
+ * Connect with retries: compose marks the gateway "started" before its WS
+ * server is listening, so the first attempts may be refused/reset.
+ */
+async function connectGateway(url, timeoutMs = 60_000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      const session = new WsSession(url);
+      await session.open();
+      return session;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+  fail(`gateway never accepted a connection: ${lastError?.message ?? 'unknown'}`);
+}
+
 /** One live WS connection with imperative send/waitFor control. */
 class WsSession {
   constructor(url) {
@@ -154,7 +174,11 @@ class WsSession {
 
   open() {
     return new Promise((resolve, reject) => {
-      this.socket.once('open', resolve);
+      this.socket.once('open', () => {
+        // Connection failures stop being fatal once the retry loop is done.
+        this.socket.on('error', () => undefined);
+        resolve();
+      });
       this.socket.once('error', reject);
     });
   }
@@ -194,8 +218,7 @@ async function main() {
   console.log('  ✓ tenant + humans seeded');
 
   // --- One conversation, end to end, on one connection ---------------------
-  const session = new WsSession(`${GATEWAY}?key=${ENV.VOICE_GATEWAY_CLIENT_KEYS}`);
-  await session.open();
+  const session = await connectGateway(`${GATEWAY}?key=${ENV.VOICE_GATEWAY_CLIENT_KEYS}`);
 
   session.send({ type: 'session.start', external_session_id: 'e2e-call-1' });
   await session.waitFor((event) => event.type === 'session.started', 'session.started');
