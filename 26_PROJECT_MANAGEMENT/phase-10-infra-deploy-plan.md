@@ -3,7 +3,7 @@ project: AURION
 document: Phase 10 Infrastructure & Deployment Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-008, ADR-014, ADR-018, ADR-019, ADR-020
 ---
@@ -68,4 +68,12 @@ Local verification passed on branch `phase-10/infra-deploy` (2026-06-10):
       private-network dispatch flag case).
 - [x] API typecheck passed; `npm audit`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `f65a123` (2026-06-10), PR #24: all
+SEVEN checks green — the new `e2e` job ran the full product loop across
+containers in CI (first round caught a gateway-startup race, fixed with
+connection retries in `f65a123`).
+
+Merge evidence: PR #24 squash-merged into `main` as `a14a321` on 2026-06-10.
+
+Carried follow-ups: promote `e2e` to a required check after runtime
+stability is proven; media server (WebRTC/SIP) when telephony lands.
