@@ -71,6 +71,13 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 - HERMES dispatch receiver contract
   (`29_HERMES_AGENT_WORKFORCE/dispatch-receiver-contract.md`):
   signature-before-parse, staleness window, `action_id` dedupe.
+- ADR-017 admin dashboard (`apps/dashboard`): Vite + React SPA with a
+  minimal runtime dependency tree (react, react-dom, react-router-dom);
+  sessionStorage-held bearer sessions (401 = session death, claims are UX
+  hints only); typed API client mirroring the OpenAPI artifact; pages for
+  the human approval workflow (approve/reject/execute with ADR-013 authority
+  rules mirrored client-side), users/memberships, knowledge lifecycle,
+  voice sessions, audit evidence, and tenant settings.
 
 ### Changed
 
