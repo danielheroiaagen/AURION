@@ -3,7 +3,7 @@ project: AURION
 document: Phase 14 Caller Voice Widget Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-10
 related: ADR-004, ADR-018, ADR-024
 ---
@@ -59,4 +59,14 @@ Local verification passed on branch `phase-14/caller-widget` (2026-06-10):
       runtime dependencies.
 - [x] `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
-Remote verification: pending PR.
+Remote verification passed on head `4a2aba1` (2026-06-10), PR #28: all
+seven checks green on the first round.
+
+Merge evidence: PR #28 squash-merged into `main` as `76a89c8` on 2026-06-10.
+
+**This closes the authorized frontend roadmap**: option B (metrics, phase
+13) and option A (caller widget, this phase) are delivered; option C
+(avatar) remains correctly vetoed by ADR-004 until the SaaS core is
+validated with real customers. Remaining work is operational (IdP
+onboarding, real HERMES connectors, VPS go-live) or deferred by ADR
+(media server/telephony, per-tenant keys, streaming audio).
