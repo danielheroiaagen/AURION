@@ -21,6 +21,7 @@ export const ACTION_TYPES = [
   'ticket.create',
   'email.send',
   'whatsapp.send',
+  'lead.capture',
 ] as const;
 
 export type ActionType = (typeof ACTION_TYPES)[number];

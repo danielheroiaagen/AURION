@@ -68,6 +68,7 @@ Actor máquina con permisos restringidos.
 | `tool:execute:ticket.create` | Sí | Sí, mismo tenant | Sí, mismo tenant | Sí, asignadas | No | No | Sí, si la policy lo permite |
 | `tool:execute:email.send` | Sí | Sí, mismo tenant | No | No | No | No | Sí, si la policy lo permite |
 | `tool:execute:whatsapp.send` | Sí | Sí, mismo tenant | No | No | No | No | Sí, si la policy lo permite |
+| `tool:execute:lead.capture` | Sí | Sí, mismo tenant | No | No | No | No | Sí, si la policy lo permite |
 | `action:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | Sí, acciones propias |
 | `metrics:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
 | `audit:read` | Sí | Sí, mismo tenant | Sí, mismo tenant | No | No | Sí, mismo tenant | No |
@@ -103,6 +104,7 @@ Estas acciones no se autorizan solo por rol. Pasan por **Policy Guard**, requier
 - `tool:execute:ticket.create`
 - `tool:execute:email.send`
 - `tool:execute:whatsapp.send`
+- `tool:execute:lead.capture`
 - `knowledge:write`
 - `tenant:settings:update`
 - `audit:read`

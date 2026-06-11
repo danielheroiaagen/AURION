@@ -1,0 +1,54 @@
+{
+  "id": "AurionLeadCaptu",
+  "name": "AURION lead.capture",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aurion-lead.capture",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aurion-lead-webhook",
+      "name": "AURION dispatch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "aurion-lead-capture"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"received\", \"integration\": \"pending-configuration\", \"request\": $json.body } }}",
+        "options": {}
+      },
+      "id": "aurion-lead-respond",
+      "name": "Evidence",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "AURION dispatch": {
+      "main": [
+        [
+          {
+            "node": "Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

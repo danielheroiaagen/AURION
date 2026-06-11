@@ -51,6 +51,16 @@ export class ScriptedBrain implements AgentBrainPort {
       };
     }
 
+    if (text.includes('interesa') || text.includes('presupuesto') || text.includes('informaci')) {
+      return {
+        text: 'He tomado tus datos para que el equipo te contacte. ¿Algo más en lo que pueda ayudarte?',
+        toolIntent: {
+          actionType: 'lead.capture',
+          payload: { interest: lastCaller?.text ?? 'Interés del llamante', channel: 'voice' },
+        },
+      };
+    }
+
     if (context.knowledge.length > 0) {
       return {
         text: `I can help with: ${context.knowledge.join(', ')}. What do you need?`,

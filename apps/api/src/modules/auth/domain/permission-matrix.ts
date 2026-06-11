@@ -37,6 +37,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'tool:execute:ticket.create',
     'tool:execute:email.send',
     'tool:execute:whatsapp.send',
+    'tool:execute:lead.capture',
     'audit:read',
     'billing:change',
     'integration:credentials.update',
@@ -88,6 +89,7 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'tool:execute:ticket.create',
     'tool:execute:email.send',
     'tool:execute:whatsapp.send',
+    'tool:execute:lead.capture',
   ]),
 
   // Internal system jobs: session ingestion/cleanup only (ADR-013).

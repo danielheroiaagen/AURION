@@ -76,6 +76,21 @@ const TOOL_DEFINITIONS = [
       required: ['message'],
     },
   },
+  {
+    actionType: 'lead.capture',
+    description:
+      'Capture the contact details of an interested caller (a potential customer) so the team can follow up. Register this whenever the caller shows interest in the service or leaves their details.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Full name of the caller.' },
+        email: { type: 'string', description: 'Email address, if given.' },
+        phone: { type: 'string', description: 'Phone number, if given.' },
+        interest: { type: 'string', description: 'What the caller is interested in.' },
+      },
+      required: ['interest'],
+    },
+  },
 ];
 
 /** GPT-5-era models enforce `^[a-zA-Z0-9_-]+$` on tool names: dots travel

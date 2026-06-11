@@ -82,6 +82,7 @@ describe('LlmBrain', () => {
       'calendar_update',
       'email_send',
       'whatsapp_send',
+      'lead_capture',
     ]);
     expect(body.messages[0].content).toContain('Pricing FAQ');
     expect(body.messages[0].content).toContain('human approves');
