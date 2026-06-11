@@ -16,19 +16,15 @@ function Bars({ data }: { data: Readonly<Record<string, number>> }): ReactNode {
   return (
     <div>
       {bars.map((bar) => (
-        <div key={bar.label} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0.3rem 0' }}>
-          <span className="muted" style={{ width: '110px' }}>{bar.label}</span>
-          <div style={{ flex: 1, background: 'var(--bg)', borderRadius: '4px' }}>
+        <div key={bar.label} className="my-1.5 flex items-center gap-2.5">
+          <span className="muted w-[110px]">{bar.label}</span>
+          <div className="h-[10px] flex-1 overflow-hidden rounded bg-[rgba(7,10,18,0.85)]">
             <div
-              style={{
-                width: `${Math.max(bar.percent, 2)}%`,
-                background: 'var(--accent)',
-                height: '10px',
-                borderRadius: '4px',
-              }}
+              className="h-full rounded bg-[image:var(--brand-gradient)] shadow-[0_0_8px_rgba(34,211,238,0.35)] transition-[width] duration-500"
+              style={{ width: `${Math.max(bar.percent, 2)}%` }}
             />
           </div>
-          <span style={{ width: '40px', textAlign: 'right' }}>{bar.count}</span>
+          <span className="w-[40px] text-right tabular-nums">{bar.count}</span>
         </div>
       ))}
     </div>
@@ -37,8 +33,8 @@ function Bars({ data }: { data: Readonly<Record<string, number>> }): ReactNode {
 
 function Kpi({ label, value }: { label: string; value: string | number }): ReactNode {
   return (
-    <div className="card" style={{ flex: 1, textAlign: 'center', marginBottom: 0 }}>
-      <div style={{ fontSize: '1.6rem', fontWeight: 700 }}>{value}</div>
+    <div className="card !mb-0 text-center">
+      <div className="metric-value">{value}</div>
       <div className="muted">{label}</div>
     </div>
   );
@@ -86,7 +82,7 @@ export function OverviewPage(): ReactNode {
 
       {metrics ? (
         <>
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="metric-grid">
             <Kpi label="conversations" value={metrics.sessions.total} />
             <Kpi label="completion rate" value={formatRate(metrics.sessions.completion_rate)} />
             <Kpi label="actions requested" value={metrics.actions.total} />
@@ -98,17 +94,17 @@ export function OverviewPage(): ReactNode {
             <Kpi label="awaiting approval" value={metrics.approvals_pending} />
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <div className="card" style={{ flex: 1 }}>
-              <h2 style={{ marginTop: 0, fontSize: '1rem' }}>Sessions by status</h2>
+          <div className="flex gap-4">
+            <div className="card flex-1">
+              <h2 className="mt-0 text-[1rem]">Sessions by status</h2>
               <Bars data={metrics.sessions.by_status} />
             </div>
-            <div className="card" style={{ flex: 1 }}>
-              <h2 style={{ marginTop: 0, fontSize: '1rem' }}>Actions by status</h2>
+            <div className="card flex-1">
+              <h2 className="mt-0 text-[1rem]">Actions by status</h2>
               <Bars data={metrics.actions.by_status} />
             </div>
-            <div className="card" style={{ flex: 1 }}>
-              <h2 style={{ marginTop: 0, fontSize: '1rem' }}>Actions by type</h2>
+            <div className="card flex-1">
+              <h2 className="mt-0 text-[1rem]">Actions by type</h2>
               <Bars data={metrics.actions.by_type} />
             </div>
           </div>

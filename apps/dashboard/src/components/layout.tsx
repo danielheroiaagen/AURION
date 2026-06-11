@@ -1,10 +1,32 @@
+import {
+  Activity,
+  BookOpen,
+  Building2,
+  CheckSquare,
+  LayoutDashboard,
+  Phone,
+  ScrollText,
+  Users,
+} from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, NavLink, Outlet } from 'react-router-dom';
 
 import { getMetricsOverview } from '../api/resources';
 import { useAuth } from '../auth/auth-context';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 
 const BADGE_REFRESH_MS = 30_000;
+
+const NAV = [
+  { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/actions', label: 'Actions', icon: CheckSquare },
+  { to: '/sessions', label: 'Voice sessions', icon: Phone },
+  { to: '/knowledge', label: 'Knowledge', icon: BookOpen },
+  { to: '/users', label: 'Users', icon: Users },
+  { to: '/audit', label: 'Audit', icon: ScrollText },
+  { to: '/tenant', label: 'Tenant', icon: Building2 },
+] as const;
 
 /** App shell: redirects to sign-in when there is no session. */
 export function ProtectedLayout(): ReactNode {
@@ -48,29 +70,28 @@ export function ProtectedLayout(): ReactNode {
       <aside className="sidebar">
         <div className="brand">AURION</div>
         <nav>
-          <NavLink to="/" end>
-            Overview
-          </NavLink>
-          <NavLink to="/actions">
-            Actions
-            {pending !== null && pending > 0 ? (
-              <span className="badge warn" style={{ marginLeft: '0.5rem' }}>
-                {pending}
-              </span>
-            ) : null}
-          </NavLink>
-          <NavLink to="/sessions">Voice sessions</NavLink>
-          <NavLink to="/knowledge">Knowledge</NavLink>
-          <NavLink to="/users">Users</NavLink>
-          <NavLink to="/audit">Audit</NavLink>
-          <NavLink to="/tenant">Tenant</NavLink>
+          {NAV.map(({ to, label, icon: Icon, ...rest }) => (
+            <NavLink key={to} to={to} end={'end' in rest ? rest.end : undefined}>
+              <Icon aria-hidden />
+              {label}
+              {to === '/actions' && pending !== null && pending > 0 ? (
+                <Badge tone="warn" className="ml-auto">
+                  {pending}
+                </Badge>
+              ) : null}
+            </NavLink>
+          ))}
         </nav>
         <div className="whoami">
-          <div>{session.claims.sub}</div>
+          <div className="flex items-center gap-1.5 text-(--color-ok)">
+            <Activity className="size-3" aria-hidden />
+            <span className="text-[0.7rem] font-semibold uppercase tracking-wider">live</span>
+          </div>
+          <div className="mt-1.5">{session.claims.sub}</div>
           <div>{session.claims.role ?? session.claims.actorType}</div>
-          <button onClick={signOut} style={{ marginTop: '0.5rem' }}>
+          <Button variant="ghost" size="sm" onClick={signOut} className="mt-2 -ml-1.5">
             Sign out
-          </button>
+          </Button>
         </div>
       </aside>
       <main className="main">

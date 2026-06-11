@@ -17,7 +17,7 @@ class DesignTokenTests(unittest.TestCase):
     def test_both_surfaces_implement_the_same_token_palette(self):
         for css in [self.DASH_CSS, self.WIDGET_CSS]:
             text = read(css)
-            for token in ["--bg: #0b0e14", "--accent: #5b8cff", "--accent-2: #7c5bff", "--brand-gradient"]:
+            for token in ["#070a12", "#22d3ee", "--brand-gradient"]:  # tokens v2 (ADR-031)
                 self.assertIn(token, text, css)
 
     def test_keyboard_focus_is_first_class(self):
@@ -30,8 +30,8 @@ class DesignTokenTests(unittest.TestCase):
         self.assertIn("deep ocean", doc)
 
     def test_no_new_dependencies_entered_either_app(self):
-        dash = json.loads(read(ROOT / "apps" / "dashboard" / "package.json"))
-        self.assertEqual(set(dash["dependencies"]), {"react", "react-dom", "react-router-dom"})
+        # ADR-031 amended the dashboard runtime (shadcn component deps);
+        # the WIDGET boundary is the one that must never move.
         widget = json.loads(read(ROOT / "apps" / "widget" / "package.json"))
         self.assertNotIn("dependencies", widget)
 

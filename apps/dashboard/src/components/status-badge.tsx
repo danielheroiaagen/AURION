@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { Badge } from './ui/badge';
+
 const TONE: Record<string, 'ok' | 'warn' | 'danger'> = {
   // shared
   active: 'ok',
@@ -26,6 +28,5 @@ const TONE: Record<string, 'ok' | 'warn' | 'danger'> = {
 };
 
 export function StatusBadge({ status }: { status: string }): ReactNode {
-  const tone = TONE[status] ?? '';
-  return <span className={`badge ${tone}`}>{status}</span>;
+  return <Badge tone={TONE[status] ?? 'neutral'}>{status}</Badge>;
 }

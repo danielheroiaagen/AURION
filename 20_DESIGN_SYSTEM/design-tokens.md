@@ -3,40 +3,47 @@ project: AURION
 document: Design Tokens
 folder: 20_DESIGN_SYSTEM
 owner: Daniel Gonzalez Junco
-status: active-v1
+status: active-v2
 created_at: 2026-05-30
-updated_at: 2026-06-10
-related: ADR-017, ADR-024
+updated_at: 2026-06-11
+related: ADR-017, ADR-024, ADR-031
 ---
 
-# AURION design tokens (v1 — implemented)
+# AURION design tokens (v2 "deep ocean futurist" — implemented)
 
-One visual language for the dashboard and the caller widget, expressed as
-CSS custom properties — no UI kit, no font downloads (system stack), no new
-dependencies (ADR-017/ADR-024 rules hold). Every surface reads from these
-tokens: restyling the product means editing tokens, not components. This
-replaces the v0 placeholder; the goal it stated stands — AURION must look
-like an enterprise platform, not an improvised demo.
+One visual language for the dashboard and the caller widget. The
+dashboard expresses these tokens through Tailwind v4 `@theme` + shadcn-
+style components (ADR-031); the widget hand-writes the same values in
+its zero-dependency stylesheet (ADR-024 boundary). Restyling the product
+still means editing tokens, not components.
 
-## Palette — "deep ocean"
+Daniel's brief for v2: deep ocean evolved into a futurist AI look —
+"que se note que usamos IA" — with Linear (tight type, hairline borders,
+micro-interactions) and Notion (calm spacing, readable hierarchy)
+influences.
+
+## Palette — "deep ocean futurist"
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `--bg` | `#0b0e14` | App background |
-| `--surface` | `#121722` | Cards, sidebar |
-| `--surface-2` | `#1a2130` | Inputs, hovers, table headers |
-| `--border` | `#232c3d` | Hairlines |
-| `--text` | `#e8ecf4` | Primary text |
-| `--text-dim` | `#8b96aa` | Secondary text, labels |
-| `--accent` | `#5b8cff` | Actions, links, focus |
-| `--accent-2` | `#7c5bff` | Gradient end (brand) |
-| `--ok` | `#34c97e` | Success states |
-| `--warn` | `#eab348` | Pending/attention |
-| `--danger` | `#ef6363` | Errors, destructive |
+| `--color-background` | `#070a12` | Abyss: app background |
+| `--color-surface` | `#0d1320` | Cards, sidebar (glass over the abyss) |
+| `--color-surface-2` | `#141c2e` | Inputs, hovers, table headers |
+| `--color-border` | `#1d2638` | Hairlines |
+| `--color-foreground` | `#e6ebf5` | Primary text |
+| `--color-muted-foreground` | `#8c98ad` | Secondary text, labels |
+| `--color-primary` | `#22d3ee` | Electric cyan: actions, focus, glow |
+| `--color-secondary` | `#8b5cf6` | Violet: gradient end (the AI hue) |
+| `--color-ok` | `#34d399` | Success states |
+| `--color-warn` | `#fbbf24` | Pending/attention |
+| `--color-danger` | `#f87171` | Errors, destructive |
 
-Brand mark: a 2-color gradient (`--accent` → `--accent-2`) on the wordmark
-dot, primary buttons and KPI values — the only decorative flourish;
-everything else is restraint.
+Brand: 3-stop gradient `#22d3ee → #5b8cff → #8b5cf6` on the wordmark dot,
+primary buttons, KPI values and metric bars. Atmosphere: fixed aurora
+radial gradients + a faint 44px circuitry grid masked to the top-left —
+visible only where surfaces let it breathe. Status badges carry a glowing
+dot (`box-shadow: 0 0 6px currentColor`); numbers are tabular (`tnum`).
+v1 ("deep ocean", `#0b0e14`/`#5b8cff`) is superseded.
 
 ## Type & rhythm
 

@@ -99,6 +99,14 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-031 design v2 "deep ocean futurist": the dashboard adopts Tailwind
+  v4 + copied-in shadcn-style components (Button/Card/Badge/Inputs,
+  lucide icons) themed from one `@theme` token source — abyssal palette,
+  cyan→violet AI gradient, aurora + circuitry-grid atmosphere, glass
+  surfaces, Linear-tight type, glowing status dots. Legacy class names
+  remain stable contracts (every screen reskinned without breakage); the
+  caller widget keeps its zero-dependency stylesheet on the same v2
+  tokens.
 - ADR-030 real connectors as n8n workflows (`CONNECTOR_MODE=n8n`): the
   action catalog grows to four types end to end (`ticket.create`,
   `calendar.update`, `email.send`, `whatsapp.send` — API catalog,

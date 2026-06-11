@@ -78,9 +78,11 @@ class DashboardTests(unittest.TestCase):
 
     def test_no_chart_library_entered_the_dependency_tree(self):
         package = json.loads(read(ROOT / "apps" / "dashboard" / "package.json"))
-        self.assertEqual(
-            set(package["dependencies"]), {"react", "react-dom", "react-router-dom"}
-        )
+        # ADR-023: the CSS bars stay; no charting library ever (ADR-031
+        # added the shadcn component runtime, which is not one).
+        deps = set(package["dependencies"]) | set(package.get("devDependencies", {}))
+        for chart in ["recharts", "chart.js", "d3", "echarts", "victory", "nivo"]:
+            self.assertNotIn(chart, deps)
 
 
 class DocsTests(unittest.TestCase):
