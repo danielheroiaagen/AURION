@@ -19,6 +19,14 @@ $KCADM config credentials --server "$KC_URL" --realm master --user admin --passw
 # --- Realm -------------------------------------------------------------
 $KCADM create realms -s realm=aurion -s enabled=true -s accessTokenLifespan=3600 2>/dev/null || echo "realm exists"
 
+# Keycloak 24+ SILENTLY DROPS unmanaged user attributes unless the realm
+# user profile allows them — found live: the admin user lost tenant_id/
+# aurion_role and every dashboard call answered 403. Enable BEFORE users.
+$KCADM get realms/aurion/users/profile > /tmp/up.json
+sed 's/^{/{"unmanagedAttributePolicy":"ENABLED",/' /tmp/up.json > /tmp/up-enabled.json
+$KCADM update realms/aurion/users/profile -f /tmp/up-enabled.json
+echo "unmanaged attributes enabled"
+
 # --- Dashboard: PUBLIC client, Authorization Code + PKCE (ADR-021) ------
 $KCADM create clients -r aurion \
   -s clientId=aurion-dashboard \
