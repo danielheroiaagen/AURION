@@ -23,6 +23,8 @@ const TTS_CONFIG = {
   voice: 'alloy',
   timeoutMs: 5_000,
   maxTextChars: 1_000,
+  speed: 1,
+  lang: '',
 };
 
 describe('TTS configuration (fail closed, ADR-026)', () => {

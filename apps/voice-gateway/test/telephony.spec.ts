@@ -555,6 +555,56 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     await vi.waitFor(() => expect(logs.some((line) => line.includes('turn timing'))).toBe(true));
   });
 
+  it('caches the greeting: one synthesis per process, instant replay per call (ADR-029)', async () => {
+    const stt = fakeStreamingTranscriber();
+    const synthesize = vi.fn(async () => ({
+      audio: Buffer.alloc(960),
+      mimeType: 'audio/pcm;rate=24000',
+    }));
+    const twilio = {
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: stt.port,
+      synthesizer: { synthesize },
+      telephony: {
+        greeting: 'Hola, soy AURION.',
+        lang: 'es-ES',
+        silenceMs: 600,
+        twilioAuthToken: 'twilio-token-testtesttest',
+        publicUrl: 'https://aurion.test',
+        sttModel: '',
+      },
+    };
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio,
+      log: () => undefined,
+    });
+    const port = (server.address() as { port: number }).port;
+
+    const first = await connectPhone(port);
+    first.send(startEvent(CLIENT_KEY));
+    expect(await first.next()).toMatchObject({ event: 'media' });
+    expect(synthesize).toHaveBeenCalledTimes(1);
+
+    const second = await connectPhone(port);
+    second.send({
+      event: 'start',
+      start: { streamSid: 'MZ2', callSid: 'CA2', customParameters: { key: CLIENT_KEY } },
+    });
+    const replay = await second.next();
+    expect(replay).toMatchObject({ event: 'media', streamSid: 'MZ2' });
+    // Same options object → the greeting replayed from cache, no new synthesis.
+    expect(synthesize).toHaveBeenCalledTimes(1);
+  });
+
   it('voices MP3 synthesis through the injected transcoder (ADR-029, operator voice)', async () => {
     const stt = fakeStreamingTranscriber();
     const ulaw = Buffer.alloc(160, 0x7f);
