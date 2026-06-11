@@ -150,6 +150,30 @@ describe('LlmBrain', () => {
     expect(reply.toolIntent?.actionType).toBe('calendar.update');
   });
 
+  it('speaks its fallbacks in the channel language — English never leaks into a Spanish call', async () => {
+    const toolOnly = completion({
+      content: null,
+      tool_calls: [{ function: { name: 'ticket_create', arguments: '{"subject":"x"}' } }],
+    });
+    const esReply = await new LlmBrain(CONFIG, vi.fn().mockResolvedValue(toolOnly)).respond({
+      ...CONTEXT,
+      lang: 'es-ES',
+    });
+    expect(esReply.text).toContain('He registrado tu solicitud');
+
+    const esClarify = await new LlmBrain(
+      CONFIG,
+      vi.fn().mockResolvedValue(completion({ content: '' })),
+    ).respond({ ...CONTEXT, lang: 'es-ES' });
+    expect(esClarify.text).toContain('¿Puedes contarme');
+
+    // Without a channel language the English fallback remains.
+    const enReply = await new LlmBrain(CONFIG, vi.fn().mockResolvedValue(toolOnly)).respond(
+      CONTEXT,
+    );
+    expect(enReply.text).toContain('I have registered');
+  });
+
   it('tolerates malformed tool arguments without dropping the request', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       completion({

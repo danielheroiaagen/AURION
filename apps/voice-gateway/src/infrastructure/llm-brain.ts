@@ -187,13 +187,21 @@ export class LlmBrain implements AgentBrainPort {
       throw new BrainError('Model returned no message.');
     }
 
+    // Fallbacks SPEAK to the caller and feed the transcript: they must
+    // follow the channel language or they drag the whole conversation
+    // into English (a live Spanish call drifted exactly this way).
+    const spanish = context.lang?.toLowerCase().startsWith('es') ?? false;
     const toolIntent = this.extractIntent(message.tool_calls);
     const text =
       typeof message.content === 'string' && message.content.trim().length > 0
         ? message.content.trim()
         : toolIntent
-          ? 'I have registered your request; it will run once a human approves it.'
-          : 'Could you tell me a bit more about what you need?';
+          ? spanish
+            ? 'He registrado tu solicitud; se ejecutará en cuanto una persona la apruebe.'
+            : 'I have registered your request; it will run once a human approves it.'
+          : spanish
+            ? '¿Puedes contarme un poco más sobre lo que necesitas?'
+            : 'Could you tell me a bit more about what you need?';
 
     return { text, toolIntent };
   }
