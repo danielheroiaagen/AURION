@@ -138,7 +138,9 @@ export class LlmBrain implements AgentBrainPort {
         },
         body: JSON.stringify({
           model: this.config.model,
-          max_tokens: this.config.maxTokens,
+          // GPT-5-era models REJECT max_tokens (400) and require this name;
+          // OpenAI-compatible servers accept it too. Found live on the phone.
+          max_completion_tokens: this.config.maxTokens,
           messages,
           tools: TOOL_CATALOG,
         }),

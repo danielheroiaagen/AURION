@@ -69,6 +69,10 @@ describe('LlmBrain', () => {
     expect((init.headers as Record<string, string>).authorization).toBe('Bearer test-api-key');
     const body = JSON.parse(init.body as string);
     expect(body.model).toBe('test-model');
+    // GPT-5-era models 400 on max_tokens — the modern name is mandatory
+    // (found live on the production phone line).
+    expect(body.max_completion_tokens).toBe(300);
+    expect(body.max_tokens).toBeUndefined();
     expect(body.tools.map((tool: { function: { name: string } }) => tool.function.name)).toEqual([
       'ticket.create',
       'calendar.update',
