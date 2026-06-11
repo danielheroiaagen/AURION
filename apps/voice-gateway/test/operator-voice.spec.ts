@@ -19,6 +19,8 @@ const HEYGEN_CONFIG = {
   voice: 'voice-id-testtest',
   timeoutMs: 5_000,
   maxTextChars: 1_000,
+  speed: 1,
+  lang: '',
 };
 
 describe('heygen TTS configuration (fail closed, ADR-029)', () => {
@@ -63,6 +65,26 @@ describe('HeyGenSpeechSynthesizer (two fetches, one timeout, ADR-029)', () => {
       return new Response(audioBytes, { status: 200 });
     });
   }
+
+  it('sends pace and language tuning to the provider (livelier clone, fixed prosody)', async () => {
+    const fetchMock = fetchMockReturning(Buffer.from('mp3'));
+    await new HeyGenSpeechSynthesizer(
+      { ...HEYGEN_CONFIG, speed: 1.15, lang: 'es' },
+      fetchMock as unknown as typeof fetch,
+    ).synthesize('hola');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.speed).toBe(1.15);
+    expect(body.language).toBe('es');
+
+    // Defaults stay clean: no tuning params at speed 1 / empty lang.
+    const plain = fetchMockReturning(Buffer.from('mp3'));
+    await new HeyGenSpeechSynthesizer(HEYGEN_CONFIG, plain as unknown as typeof fetch).synthesize(
+      'hola',
+    );
+    const plainBody = JSON.parse(plain.mock.calls[0][1].body);
+    expect(plainBody.speed).toBeUndefined();
+    expect(plainBody.language).toBeUndefined();
+  });
 
   it('posts the text with the voice id and downloads the mp3', async () => {
     const fetchMock = fetchMockReturning(Buffer.from('mp3-bytes'));

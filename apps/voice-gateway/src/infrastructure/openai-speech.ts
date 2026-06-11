@@ -48,6 +48,7 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
           voice: this.config.voice,
           input,
           response_format: this.format,
+          ...(this.config.speed !== 1 ? { speed: this.config.speed } : {}),
         }),
         signal: controller.signal,
       });
@@ -99,6 +100,7 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
           voice: this.config.voice,
           input,
           response_format: 'pcm',
+          ...(this.config.speed !== 1 ? { speed: this.config.speed } : {}),
         }),
         signal: controller.signal,
       });

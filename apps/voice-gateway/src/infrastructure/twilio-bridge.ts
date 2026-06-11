@@ -33,6 +33,12 @@ export interface TwilioBridgeOptions {
 
 const APOLOGY = 'Disculpa, ha habido un problema técnico. ¿Puedes repetirlo?';
 
+/** The greeting never changes per process: synthesize ONCE, replay
+ * instantly on every call (ADR-029 tuning — buffered voices like the
+ * operator clone cost seconds per synthesis). Keyed by the synthesizer
+ * instance (stable per process; per-connection options are spread). */
+const GREETING_CACHE = new WeakMap<SpeechSynthesisPort, { text: string; ulaw: Buffer }>();
+
 /** Accent/punctuation-insensitive form for the echo guard. */
 function normalizeForEcho(text: string): string {
   return text
@@ -75,7 +81,7 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
 
   /** Streaming path (ADR-032): transcode and ship frames as PCM arrives —
    * the caller hears the first word while the rest still renders. */
-  const sayStreaming = async (text: string): Promise<void> => {
+  const sayStreaming = async (text: string, out: (ulaw: Buffer) => void): Promise<void> => {
     let pcmCarry = Buffer.alloc(0);
     let ulawCarry = Buffer.alloc(0);
     await options.synthesizer.synthesizeStream!(text, (pcmChunk) => {
@@ -86,11 +92,11 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
       if (usable === 0) {
         return;
       }
-      const out = Buffer.concat([ulawCarry, pcm16ToUlaw8k(data.subarray(0, usable))]);
-      const whole = Math.floor(out.length / 160) * 160;
-      ulawCarry = out.subarray(whole);
+      const ulaw = Buffer.concat([ulawCarry, pcm16ToUlaw8k(data.subarray(0, usable))]);
+      const whole = Math.floor(ulaw.length / 160) * 160;
+      ulawCarry = ulaw.subarray(whole);
       if (whole > 0) {
-        sendFrames(out.subarray(0, whole));
+        out(ulaw.subarray(0, whole));
       }
     });
     const tailPcm = pcmCarry.subarray(0, Math.floor(pcmCarry.length / 6) * 6);
@@ -99,26 +105,40 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
       tailPcm.length > 0 ? pcm16ToUlaw8k(tailPcm) : Buffer.alloc(0),
     ]);
     if (tail.length > 0) {
-      sendFrames(tail);
+      out(tail);
     }
   };
 
   const say = async (text: string): Promise<void> => {
     lastSpoken = text;
+    const isGreeting = text === options.telephony.greeting;
+    const cached = isGreeting ? GREETING_CACHE.get(options.synthesizer) : undefined;
+    if (cached && cached.text === text) {
+      sendFrames(cached.ulaw);
+      return;
+    }
+    const collected: Buffer[] = [];
+    const out = (ulaw: Buffer): void => {
+      if (isGreeting) {
+        collected.push(ulaw);
+      }
+      sendFrames(ulaw);
+    };
     if (typeof options.synthesizer.synthesizeStream === 'function' && !options.mp3ToUlaw) {
-      await sayStreaming(text);
-      return;
+      await sayStreaming(text, out);
+    } else {
+      const speech = await options.synthesizer.synthesize(text);
+      if (speech.mimeType.startsWith('audio/pcm')) {
+        out(pcm16ToUlaw8k(speech.audio));
+      } else if (speech.mimeType === 'audio/mpeg' && options.mp3ToUlaw) {
+        out(await options.mp3ToUlaw(speech.audio));
+      } else {
+        throw new Error(`Telephony cannot voice ${speech.mimeType} without a transcoder (ADR-029).`);
+      }
     }
-    const speech = await options.synthesizer.synthesize(text);
-    if (speech.mimeType.startsWith('audio/pcm')) {
-      sendFrames(pcm16ToUlaw8k(speech.audio));
-      return;
+    if (isGreeting && collected.length > 0) {
+      GREETING_CACHE.set(options.synthesizer, { text, ulaw: Buffer.concat(collected) });
     }
-    if (speech.mimeType === 'audio/mpeg' && options.mp3ToUlaw) {
-      sendFrames(await options.mp3ToUlaw(speech.audio));
-      return;
-    }
-    throw new Error(`Telephony cannot voice ${speech.mimeType} without a transcoder (ADR-029).`);
   };
 
   const runTurn = (text: string): void => {

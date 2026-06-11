@@ -33,7 +33,14 @@ export class HeyGenSpeechSynthesizer implements SpeechSynthesisPort {
           'x-api-key': this.config.apiKey,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ text: input, voice_id: this.config.voice }),
+        body: JSON.stringify({
+          text: input,
+          voice_id: this.config.voice,
+          // speed 1.15 measured live on the operator clone: livelier AND
+          // ~40% faster to synthesize; explicit language fixes prosody.
+          ...(this.config.speed !== 1 ? { speed: this.config.speed } : {}),
+          ...(this.config.lang ? { language: this.config.lang } : {}),
+        }),
         signal: controller.signal,
       });
       if (!response.ok) {

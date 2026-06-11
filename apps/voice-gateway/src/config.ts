@@ -32,6 +32,10 @@ export interface TtsConfig {
   readonly voice: string;
   readonly timeoutMs: number;
   readonly maxTextChars: number;
+  /** Speaking pace 0.5–2.0 (1.15 wakes up a sleepy clone — tuned live). */
+  readonly speed: number;
+  /** Explicit synthesis language (ISO-639-1), empty = provider autodetect. */
+  readonly lang: string;
 }
 
 export interface TelephonyConfig {
@@ -201,6 +205,10 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
       // The operator's cloned voice id — there is no sensible default.
       throw new Error('TTS_VOICE (the HeyGen voice id) is required in heygen TTS mode (ADR-029).');
     }
+    const speed = Number.parseFloat(env.TTS_SPEED ?? '1');
+    if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) {
+      throw new Error('TTS_SPEED must be a number between 0.5 and 2.0 (ADR-029).');
+    }
     tts = {
       apiUrl: ttsUrl.replace(/\/+$/, ''),
       apiKey,
@@ -208,6 +216,8 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
       voice,
       timeoutMs: parsePositiveInt(env.TTS_TIMEOUT_MS, 30_000),
       maxTextChars: parsePositiveInt(env.TTS_MAX_TEXT_CHARS, 1_000),
+      speed,
+      lang: (env.TTS_LANG ?? '').trim(),
     };
   }
 
