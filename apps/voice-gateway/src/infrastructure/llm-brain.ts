@@ -21,76 +21,83 @@ export class BrainError extends Error {
 }
 
 /** Mirror of the API's ACTION_TYPES catalog (ADR-013). */
-const TOOL_CATALOG = [
+const TOOL_DEFINITIONS = [
   {
-    type: 'function' as const,
-    function: {
-      name: 'ticket.create',
-      description:
-        'Register a support ticket request for the caller. It will be executed only after a human approves it.',
-      parameters: {
-        type: 'object',
-        properties: {
-          subject: { type: 'string', description: 'Short summary of the caller issue.' },
-        },
-        required: ['subject'],
+    actionType: 'ticket.create',
+    description:
+      'Register a support ticket request for the caller. It will be executed only after a human approves it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        subject: { type: 'string', description: 'Short summary of the caller issue.' },
       },
+      required: ['subject'],
     },
   },
   {
-    type: 'function' as const,
-    function: {
-      name: 'calendar.update',
-      description:
-        'Register an appointment change request for the caller. It will be executed only after a human approves it.',
-      parameters: {
-        type: 'object',
-        properties: {
-          request: { type: 'string', description: 'What the caller wants changed.' },
-        },
-        required: ['request'],
+    actionType: 'calendar.update',
+    description:
+      'Register an appointment change request for the caller. It will be executed only after a human approves it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        request: { type: 'string', description: 'What the caller wants changed.' },
       },
+      required: ['request'],
     },
   },
   {
-    type: 'function' as const,
-    function: {
-      name: 'email.send',
-      description:
-        'Register an email to be sent on behalf of the company (confirmation, follow-up, information the caller asked for). It will be sent only after a human approves it.',
-      parameters: {
-        type: 'object',
-        properties: {
-          to: { type: 'string', description: 'Recipient email address, if the caller gave one.' },
-          subject: { type: 'string', description: 'Short subject line.' },
-          body: { type: 'string', description: 'The message to send.' },
-        },
-        required: ['subject', 'body'],
+    actionType: 'email.send',
+    description:
+      'Register an email to be sent on behalf of the company (confirmation, follow-up, information the caller asked for). It will be sent only after a human approves it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Recipient email address, if the caller gave one.' },
+        subject: { type: 'string', description: 'Short subject line.' },
+        body: { type: 'string', description: 'The message to send.' },
       },
+      required: ['subject', 'body'],
     },
   },
   {
-    type: 'function' as const,
-    function: {
-      name: 'whatsapp.send',
-      description:
-        'Register a WhatsApp message to be sent to the caller or a contact they specify. It will be sent only after a human approves it.',
-      parameters: {
-        type: 'object',
-        properties: {
-          to: {
-            type: 'string',
-            description: 'Destination phone in international format, if the caller gave one.',
-          },
-          message: { type: 'string', description: 'The message to send.' },
+    actionType: 'whatsapp.send',
+    description:
+      'Register a WhatsApp message to be sent to the caller or a contact they specify. It will be sent only after a human approves it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: {
+          type: 'string',
+          description: 'Destination phone in international format, if the caller gave one.',
         },
-        required: ['message'],
+        message: { type: 'string', description: 'The message to send.' },
       },
+      required: ['message'],
     },
   },
 ];
 
-const KNOWN_TOOLS = new Set(TOOL_CATALOG.map((tool) => tool.function.name));
+/** GPT-5-era models enforce `^[a-zA-Z0-9_-]+$` on tool names: dots travel
+ * as underscores on the wire and map back to catalog action types here. */
+const wireName = (actionType: string): string => actionType.replace(/\./g, '_');
+
+const TOOL_CATALOG = TOOL_DEFINITIONS.map((definition) => ({
+  type: 'function' as const,
+  function: {
+    name: wireName(definition.actionType),
+    description: definition.description,
+    parameters: definition.parameters,
+  },
+}));
+
+/** Liberal on input: accept the wire form AND the dotted catalog form. */
+const ACTION_TYPE_BY_TOOL_NAME = new Map(
+  TOOL_DEFINITIONS.flatMap((definition) => [
+    [wireName(definition.actionType), definition.actionType] as const,
+    [definition.actionType, definition.actionType] as const,
+  ]),
+);
 
 interface ChatCompletionResponse {
   choices?: Array<{
@@ -184,7 +191,8 @@ export class LlmBrain implements AgentBrainPort {
   ): ToolIntent | null {
     for (const call of toolCalls ?? []) {
       const name = call.function?.name;
-      if (!name || !KNOWN_TOOLS.has(name)) {
+      const actionType = name ? ACTION_TYPE_BY_TOOL_NAME.get(name) : undefined;
+      if (!actionType) {
         continue;
       }
       let payload: Record<string, unknown> = {};
@@ -197,7 +205,7 @@ export class LlmBrain implements AgentBrainPort {
         // Malformed arguments: register the intent with an empty payload
         // rather than dropping the caller's request silently.
       }
-      return { actionType: name, payload: { ...payload, channel: 'voice' } };
+      return { actionType, payload: { ...payload, channel: 'voice' } };
     }
     return null;
   }
