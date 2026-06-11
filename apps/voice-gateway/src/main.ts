@@ -46,8 +46,13 @@ startWsServer({
           brain,
           // The greeting doubles as the transcription's context bias: the
           // literal first words of the call, in the channel language.
+          // TELEPHONY_STT_MODEL (ADR-032) can pick a streaming-first model
+          // (gpt-realtime-whisper) without touching the widget's REST STT.
           transcriber: new OpenAiRealtimeTranscriber(
-            config.stt!,
+            {
+              ...config.stt!,
+              model: config.telephony!.sttModel || config.stt!.model,
+            },
             config.telephony!.silenceMs,
             config.telephony!.greeting,
           ),

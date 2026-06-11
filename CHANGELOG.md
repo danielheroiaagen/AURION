@@ -99,6 +99,15 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-032 realtime voice v2: phone turns drop from ~5-7s to ~2s to the
+  first spoken word. Brain latency governed by model choice
+  (gpt-5.4-mini measured ≈0.9s with tools vs ≈4s on gpt-5.5; the dead
+  reasoning_effort lever removed — it 400s with tools), streaming TTS
+  (μ-law frames ship as PCM renders), streaming-first call STT
+  (`TELEPHONY_STT_MODEL=gpt-realtime-whisper` with adapter-side energy
+  VAD, manual commits, barge-in preserved), and an echo guard so the
+  agent's own voice never becomes a caller turn (ghost turn observed
+  live).
 - ADR-031 design v2 "deep ocean futurist": the dashboard adopts Tailwind
   v4 + copied-in shadcn-style components (Button/Card/Badge/Inputs,
   lucide icons) themed from one `@theme` token source — abyssal palette,
