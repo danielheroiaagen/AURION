@@ -9,6 +9,7 @@ const CONFIG = {
   model: 'test-model',
   timeoutMs: 1000,
   maxTokens: 300,
+  reasoningEffort: null,
 };
 
 const CONTEXT = {
@@ -56,6 +57,22 @@ describe('gateway config: llm mode (fail closed)', () => {
   it('scripted mode stays the default and needs no llm settings', () => {
     expect(loadGatewayConfig({ ...BASE, BRAIN_MODE: undefined }).brainMode).toBe('scripted');
   });
+
+  it('validates the reasoning-effort latency lever', () => {
+    const VALID = {
+      ...BASE,
+      LLM_API_URL: 'https://llm.test/v1',
+      LLM_API_KEY: 'k'.repeat(12),
+      LLM_MODEL: 'gpt-x',
+    };
+    expect(loadGatewayConfig(VALID).llm?.reasoningEffort).toBeNull();
+    expect(
+      loadGatewayConfig({ ...VALID, LLM_REASONING_EFFORT: 'low' }).llm?.reasoningEffort,
+    ).toBe('low');
+    expect(() => loadGatewayConfig({ ...VALID, LLM_REASONING_EFFORT: 'turbo' })).toThrow(
+      /LLM_REASONING_EFFORT/,
+    );
+  });
 });
 
 describe('LlmBrain', () => {
@@ -84,6 +101,22 @@ describe('LlmBrain', () => {
     expect(body.messages[0].content).toContain('Pricing FAQ');
     expect(body.messages[0].content).toContain('human approves');
     expect(body.messages[1]).toEqual({ role: 'user', content: CONTEXT.transcript[0].text });
+    // No effort configured → the param never reaches compat endpoints.
+    expect(body.reasoning_effort).toBeUndefined();
+  });
+
+  it('sends the reasoning-effort lever and pins the channel language (phone fixes, live-found)', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(completion({ content: 'Claro, te ayudo.' }));
+    await new LlmBrain({ ...CONFIG, reasoningEffort: 'low' }, fetchImpl).respond({
+      ...CONTEXT,
+      lang: 'es-ES',
+    });
+    const body = JSON.parse(fetchImpl.mock.calls[0][1].body as string);
+    expect(body.reasoning_effort).toBe('low');
+    const system = body.messages[0].content as string;
+    expect(system).toContain('expected caller language is es-ES');
+    expect(system).toContain('NEVER switch languages');
+    expect(system).toContain('one or two short sentences');
   });
 
   it('maps a catalog tool call to a ToolIntent (the approval path is untouched)', async () => {

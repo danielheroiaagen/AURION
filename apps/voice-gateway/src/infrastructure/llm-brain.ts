@@ -117,11 +117,19 @@ export class LlmBrain implements AgentBrainPort {
   ) {}
 
   async respond(context: BrainContext): Promise<BrainReply> {
+    // Misdetected language on short utterances is a REAL failure mode
+    // (a Spanish caller was answered in Portuguese): pin the channel's
+    // expected language and forbid mid-conversation switches.
+    const languageRule = context.lang
+      ? `The expected caller language is ${context.lang}. Reply in the language the caller actually speaks; when in doubt, use ${context.lang}. NEVER switch languages mid-conversation unless the caller clearly does. `
+      : 'Reply in the language the caller speaks and keep it consistent for the whole conversation. ';
+
     const messages = [
       {
         role: 'system',
         content:
-          'You are AURION, a voice support agent for one company. Answer briefly and naturally, in the caller language. ' +
+          'You are AURION, a voice support agent for one company. This is a LIVE PHONE-STYLE conversation: keep replies to one or two short sentences, natural and direct. ' +
+          languageRule +
           'You may use the provided tools to REGISTER requests; be honest that registered requests run only after a human approves them — never claim something was already done. ' +
           (context.knowledge.length > 0
             ? `The company knowledge base covers: ${context.knowledge.join(', ')}.`
@@ -148,6 +156,11 @@ export class LlmBrain implements AgentBrainPort {
           // GPT-5-era models REJECT max_tokens (400) and require this name;
           // OpenAI-compatible servers accept it too. Found live on the phone.
           max_completion_tokens: this.config.maxTokens,
+          // Latency lever for reasoning models (measured live on gpt-5.5:
+          // low ≈ 1.7 s vs ≈ 3.0 s default; 'minimal' is rejected there).
+          ...(this.config.reasoningEffort
+            ? { reasoning_effort: this.config.reasoningEffort }
+            : {}),
           messages,
           tools: TOOL_CATALOG,
         }),

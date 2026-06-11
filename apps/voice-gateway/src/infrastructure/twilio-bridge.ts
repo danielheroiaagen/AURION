@@ -35,7 +35,9 @@ const APOLOGY = 'Disculpa, ha habido un problema técnico. ¿Puedes repetirlo?';
 
 export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions): void {
   const log = options.log ?? ((message: string) => process.stdout.write(`${message}\n`));
-  const engine = new ConversationEngine(options.api, options.brain);
+  // The phone line's language pins the brain's reply language (a caller
+  // greeted in Portuguese once — never again).
+  const engine = new ConversationEngine(options.api, options.brain, options.telephony.lang);
   let streamSid: string | null = null;
   let stream: UtteranceStream | null = null;
   let endedGracefully = false;
@@ -77,8 +79,14 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
         // action.requested has no audio analog: the reply TEXT already
         // tells the caller honestly that the request awaits approval
         // (ADR-013) — the brain's words are the phone UI.
+        const brainStart = Date.now();
         const result = await engine.userTurn(text);
+        const brainMs = Date.now() - brainStart;
+        const ttsStart = Date.now();
         await say(result.reply);
+        // Latency is a product feature on a phone call: keep the
+        // breakdown in the logs so regressions are diagnosable.
+        log(`phone turn timing: brain=${brainMs}ms tts=${Date.now() - ttsStart}ms`);
       } catch (error) {
         log(`phone turn failed: ${error instanceof Error ? error.message : String(error)}`);
         try {

@@ -11,6 +11,8 @@ export interface BrainContext {
   readonly transcript: readonly ConversationTurn[];
   /** Titles of the tenant's published knowledge documents. */
   readonly knowledge: readonly string[];
+  /** Channel's expected caller language (BCP 47), when known. */
+  readonly lang?: string;
 }
 
 export interface ToolIntent {
