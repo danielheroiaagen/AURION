@@ -22,8 +22,21 @@ class WorkspaceTests(unittest.TestCase):
     def test_runtime_dependency_tree_is_minimal(self):
         package = json.loads(read(DASH / "package.json"))
         runtime = set(package["dependencies"])
-        # ADR-017: react + router and NOTHING else at runtime.
-        self.assertEqual(runtime, {"react", "react-dom", "react-router-dom"})
+        # ADR-017 as amended by ADR-031: react + router + the shadcn
+        # component runtime (copied-in components, no UI-kit package).
+        self.assertEqual(
+            runtime,
+            {
+                "react",
+                "react-dom",
+                "react-router-dom",
+                "@radix-ui/react-slot",
+                "class-variance-authority",
+                "clsx",
+                "lucide-react",
+                "tailwind-merge",
+            },
+        )
 
     def test_ci_runs_dashboard_typecheck_tests_and_build(self):
         ci = read(ROOT / ".github" / "workflows" / "ci.yml")
