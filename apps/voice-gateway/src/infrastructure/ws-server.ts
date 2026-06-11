@@ -4,7 +4,13 @@ import type { IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 
 import { ConversationEngine, EngineError } from '../application/conversation-engine.js';
-import type { AgentBrainPort, AurionApiPort, TranscriptionPort } from '../application/ports.js';
+import type {
+  AgentBrainPort,
+  AurionApiPort,
+  SpeechSynthesisPort,
+  TranscriptionPort,
+} from '../application/ports.js';
+import { SpeechSynthesisError } from './openai-speech.js';
 import { TranscriptionError } from './openai-transcriber.js';
 import {
   parseClientEvent,
@@ -26,6 +32,8 @@ export interface WsServerOptions {
   readonly brain: AgentBrainPort;
   /** Server-side STT (ADR-025); null answers audio.utterance with stt_disabled. */
   readonly transcriber: TranscriptionPort | null;
+  /** Server-side TTS (ADR-026); null means replies are text-only. */
+  readonly synthesizer: SpeechSynthesisPort | null;
   readonly maxAudioBytes?: number;
   readonly log?: (message: string) => void;
 }
@@ -61,6 +69,16 @@ export function startWsServer(options: WsServerOptions): WebSocketServer {
         });
       }
       send({ type: 'turn.agent', text: result.reply });
+      // Voice is an enhancement (ADR-026): the text above is already out,
+      // so a synthesis failure costs the audio, never the answer.
+      if (options.synthesizer && result.reply.length > 0) {
+        const speech = await options.synthesizer.synthesize(result.reply);
+        send({
+          type: 'audio.agent',
+          audio: speech.audio.toString('base64'),
+          mime_type: speech.mimeType,
+        });
+      }
     };
 
     socket.on('message', (raw) => {
@@ -76,6 +94,7 @@ export function startWsServer(options: WsServerOptions): WebSocketServer {
                 type: 'session.started',
                 session_id: sessionId,
                 stt_enabled: options.transcriber !== null,
+                tts_enabled: options.synthesizer !== null,
               });
               break;
             }
@@ -135,6 +154,15 @@ export function startWsServer(options: WsServerOptions): WebSocketServer {
           if (error instanceof TranscriptionError) {
             log(`stt failure: ${error.message}`);
             send({ type: 'error', code: 'stt_failed', message: 'Speech could not be transcribed.' });
+            return;
+          }
+          if (error instanceof SpeechSynthesisError) {
+            log(`tts failure: ${error.message}`);
+            send({
+              type: 'error',
+              code: 'tts_failed',
+              message: 'The reply could not be voiced; the text above stands.',
+            });
             return;
           }
           log(`upstream failure: ${error instanceof Error ? error.message : String(error)}`);

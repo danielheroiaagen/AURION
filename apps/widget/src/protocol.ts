@@ -11,9 +11,10 @@ export type ClientEvent =
   | { type: 'session.end'; outcome?: string };
 
 export type ServerEvent =
-  | { type: 'session.started'; session_id: string; stt_enabled?: boolean }
+  | { type: 'session.started'; session_id: string; stt_enabled?: boolean; tts_enabled?: boolean }
   | { type: 'turn.agent'; text: string }
   | { type: 'audio.transcript'; text: string }
+  | { type: 'audio.agent'; audio: string; mime_type: string }
   | { type: 'action.requested'; action_id: string; action_type: string; approval_pending: true }
   | { type: 'action.update'; action_id: string; status: string }
   | { type: 'session.ended'; session_id: string; status: string }
@@ -23,6 +24,7 @@ const SERVER_EVENT_TYPES = new Set([
   'session.started',
   'turn.agent',
   'audio.transcript',
+  'audio.agent',
   'action.requested',
   'action.update',
   'session.ended',

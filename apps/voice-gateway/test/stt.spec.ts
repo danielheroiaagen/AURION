@@ -174,6 +174,7 @@ describe('WS audio flow (ADR-025: capture changes, authority does not)', () => {
       api: fakeApi(),
       brain: new ScriptedBrain(),
       transcriber,
+      synthesizer: null,
       log: () => undefined,
     });
     return (server.address() as { port: number }).port;
@@ -247,6 +248,7 @@ describe('WS audio flow (ADR-025: capture changes, authority does not)', () => {
       api: fakeApi(),
       brain: new ScriptedBrain(),
       transcriber: { transcribe },
+      synthesizer: null,
       maxAudioBytes: 8,
       log: () => undefined,
     });
