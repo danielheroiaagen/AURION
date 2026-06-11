@@ -31,6 +31,26 @@ export class ScriptedBrain implements AgentBrainPort {
       };
     }
 
+    if (text.includes('email') || text.includes('correo')) {
+      return {
+        text: 'I have registered the email request. It will be sent once a human approves it.',
+        toolIntent: {
+          actionType: 'email.send',
+          payload: { subject: 'Caller email request', body: lastCaller?.text ?? '', channel: 'voice' },
+        },
+      };
+    }
+
+    if (text.includes('whatsapp') || text.includes('mensaje')) {
+      return {
+        text: 'I have registered the WhatsApp message. It will be sent once a human approves it.',
+        toolIntent: {
+          actionType: 'whatsapp.send',
+          payload: { message: lastCaller?.text ?? '', channel: 'voice' },
+        },
+      };
+    }
+
     if (context.knowledge.length > 0) {
       return {
         text: `I can help with: ${context.knowledge.join(', ')}. What do you need?`,

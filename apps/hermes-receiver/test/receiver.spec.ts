@@ -178,6 +178,8 @@ describe('HTTP receiver end to end (real signed requests)', () => {
         secret: SECRET,
         stalenessWindowSec: 300,
         dedupeCapacity: 100,
+        connectorMode: 'stub',
+        n8n: null,
       },
       registry,
       { log: () => undefined },

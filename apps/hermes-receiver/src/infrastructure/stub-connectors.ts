@@ -30,6 +30,30 @@ export class StubCalendarConnector implements ConnectorPort {
   }
 }
 
+export class StubEmailConnector implements ConnectorPort {
+  readonly actionType = 'email.send';
+
+  async execute(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return {
+      connector_mode: 'stub',
+      message_id: `STUB-${Math.abs(hashOf(JSON.stringify(payload))).toString(36)}`,
+      subject: typeof payload.subject === 'string' ? payload.subject : null,
+    };
+  }
+}
+
+export class StubWhatsappConnector implements ConnectorPort {
+  readonly actionType = 'whatsapp.send';
+
+  async execute(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return {
+      connector_mode: 'stub',
+      message_sid: `STUB-${Math.abs(hashOf(JSON.stringify(payload))).toString(36)}`,
+      to: typeof payload.to === 'string' ? payload.to : null,
+    };
+  }
+}
+
 /** Deterministic id derivation so replays in tests are stable. */
 function hashOf(text: string): number {
   let hash = 0;

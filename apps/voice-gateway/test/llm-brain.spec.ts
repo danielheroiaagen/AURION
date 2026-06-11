@@ -72,6 +72,8 @@ describe('LlmBrain', () => {
     expect(body.tools.map((tool: { function: { name: string } }) => tool.function.name)).toEqual([
       'ticket.create',
       'calendar.update',
+      'email.send',
+      'whatsapp.send',
     ]);
     expect(body.messages[0].content).toContain('Pricing FAQ');
     expect(body.messages[0].content).toContain('human approves');

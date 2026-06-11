@@ -16,7 +16,12 @@ import type { Permission } from '../../auth/domain/permissions';
  *
  * `cancelled` is reserved (no MVP endpoint; withdrawal goes through reject).
  */
-export const ACTION_TYPES = ['calendar.update', 'ticket.create'] as const;
+export const ACTION_TYPES = [
+  'calendar.update',
+  'ticket.create',
+  'email.send',
+  'whatsapp.send',
+] as const;
 
 export type ActionType = (typeof ACTION_TYPES)[number];
 

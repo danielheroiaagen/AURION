@@ -52,6 +52,42 @@ const TOOL_CATALOG = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'email.send',
+      description:
+        'Register an email to be sent on behalf of the company (confirmation, follow-up, information the caller asked for). It will be sent only after a human approves it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: { type: 'string', description: 'Recipient email address, if the caller gave one.' },
+          subject: { type: 'string', description: 'Short subject line.' },
+          body: { type: 'string', description: 'The message to send.' },
+        },
+        required: ['subject', 'body'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'whatsapp.send',
+      description:
+        'Register a WhatsApp message to be sent to the caller or a contact they specify. It will be sent only after a human approves it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: {
+            type: 'string',
+            description: 'Destination phone in international format, if the caller gave one.',
+          },
+          message: { type: 'string', description: 'The message to send.' },
+        },
+        required: ['message'],
+      },
+    },
+  },
 ];
 
 const KNOWN_TOOLS = new Set(TOOL_CATALOG.map((tool) => tool.function.name));

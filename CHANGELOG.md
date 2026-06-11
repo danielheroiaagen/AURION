@@ -99,6 +99,15 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-030 real connectors as n8n workflows (`CONNECTOR_MODE=n8n`): the
+  action catalog grows to four types end to end (`ticket.create`,
+  `calendar.update`, `email.send`, `whatsapp.send` — API catalog,
+  permissions, matrix, LLM/scripted brains, OpenAPI) and HERMES executes
+  them as workflows on the operator's own n8n (one typed webhook per
+  action, credentials in n8n's vault, evidence stamped
+  `connector_mode: "n8n"`, failures surface as `connector_failed`).
+  Importable workflow skeletons whose default evidence honestly says
+  `pending-configuration` until real provider nodes are wired.
 - ADR-029 operator cloned voice (`TTS_MODE=heygen`): the agent can speak
   with Daniel's own HeyGen-cloned voice on BOTH channels — the widget
   plays the MP3 natively, the phone decodes it through the ffmpeg system

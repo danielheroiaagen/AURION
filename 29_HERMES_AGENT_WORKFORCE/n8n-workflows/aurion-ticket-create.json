@@ -1,0 +1,37 @@
+{
+  "name": "AURION ticket.create",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aurion-ticket.create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aurion-ticket-create-webhook",
+      "name": "AURION dispatch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "aurion-ticket-create"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"received\", \"integration\": \"pending-configuration\", \"request\": $json.body } }}",
+        "options": {}
+      },
+      "id": "aurion-ticket-create-respond",
+      "name": "Evidence",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [400, 0]
+    }
+  ],
+  "connections": {
+    "AURION dispatch": {
+      "main": [[{ "node": "Evidence", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
