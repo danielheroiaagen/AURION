@@ -1059,7 +1059,8 @@
               "calendar.update",
               "ticket.create",
               "email.send",
-              "whatsapp.send"
+              "whatsapp.send",
+              "lead.capture"
             ]
           },
           "voice_session_id": {

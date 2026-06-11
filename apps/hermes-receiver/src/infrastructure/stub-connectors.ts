@@ -54,6 +54,18 @@ export class StubWhatsappConnector implements ConnectorPort {
   }
 }
 
+export class StubLeadConnector implements ConnectorPort {
+  readonly actionType = 'lead.capture';
+
+  async execute(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return {
+      connector_mode: 'stub',
+      lead_id: `STUB-${Math.abs(hashOf(JSON.stringify(payload))).toString(36)}`,
+      interest: typeof payload.interest === 'string' ? payload.interest : null,
+    };
+  }
+}
+
 /** Deterministic id derivation so replays in tests are stable. */
 function hashOf(text: string): number {
   let hash = 0;

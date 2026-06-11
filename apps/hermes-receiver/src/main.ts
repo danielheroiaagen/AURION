@@ -5,6 +5,7 @@ import { N8nConnector } from './infrastructure/n8n-connector.js';
 import {
   StubCalendarConnector,
   StubEmailConnector,
+  StubLeadConnector,
   StubTicketConnector,
   StubWhatsappConnector,
 } from './infrastructure/stub-connectors.js';
@@ -12,7 +13,13 @@ import {
 // Fail closed: this throws before the server opens if the secret is missing.
 const config = loadReceiverConfig();
 
-const ACTION_TYPES = ['ticket.create', 'calendar.update', 'email.send', 'whatsapp.send'];
+const ACTION_TYPES = [
+  'ticket.create',
+  'calendar.update',
+  'email.send',
+  'whatsapp.send',
+  'lead.capture',
+];
 
 const registry = new ConnectorRegistry();
 if (config.connectorMode === 'n8n') {
@@ -26,6 +33,7 @@ if (config.connectorMode === 'n8n') {
   registry.register(new StubCalendarConnector());
   registry.register(new StubEmailConnector());
   registry.register(new StubWhatsappConnector());
+  registry.register(new StubLeadConnector());
 }
 
 startReceiver(config, registry);
