@@ -86,7 +86,7 @@ services:
       # Server-side STT (ADR-025). The provider key lives HERE, never in a browser.
       STT_MODE: ${STT_MODE:-off}
       STT_API_KEY: ${STT_API_KEY:-}
-      STT_MODEL: ${STT_MODEL:-gpt-4o-mini-transcribe}
+      STT_MODEL: ${STT_MODEL:-gpt-4o-transcribe}
       # Server-side TTS (ADR-026). Same key discipline as STT.
       TTS_MODE: ${TTS_MODE:-off}
       TTS_API_KEY: ${TTS_API_KEY:-}

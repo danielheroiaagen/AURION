@@ -30,7 +30,7 @@ a new driven port:
   back to its existing local capture / text input (ADR-024).
 - **Config, fail-closed** (same pattern as `BRAIN_MODE`): `STT_MODE` is
   `off` (default) or `openai`; `openai` requires `STT_API_KEY` and refuses
-  to boot without it. `STT_MODEL` defaults to `gpt-4o-mini-transcribe`,
+  to boot without it. `STT_MODEL` defaults to `gpt-4o-transcribe`,
   `STT_API_URL` to `https://api.openai.com/v1`; timeout and a hard audio
   size cap are configurable.
 

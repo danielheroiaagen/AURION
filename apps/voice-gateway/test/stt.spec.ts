@@ -18,7 +18,7 @@ const STT_CONFIG = {
   apiUrl: 'https://stt.test/v1',
   // Deliberately low-entropy fixture: must never trip the secret scanner.
   apiKey: 'sk-testtesttest',
-  model: 'gpt-4o-mini-transcribe',
+  model: 'gpt-4o-transcribe',
   timeoutMs: 5_000,
   maxAudioBytes: 2_000_000,
 };
@@ -35,7 +35,7 @@ describe('STT configuration (fail closed, ADR-025)', () => {
     });
     expect(config.sttMode).toBe('openai');
     expect(config.stt?.apiUrl).toBe('https://api.openai.com/v1');
-    expect(config.stt?.model).toBe('gpt-4o-mini-transcribe');
+    expect(config.stt?.model).toBe('gpt-4o-transcribe');
     expect(config.stt?.maxAudioBytes).toBe(2_000_000);
   });
 
@@ -83,7 +83,7 @@ describe('OpenAiTranscriber (fetch only, no SDK)', () => {
     expect(url).toBe('https://stt.test/v1/audio/transcriptions');
     expect(init.headers.authorization).toBe(`Bearer ${STT_CONFIG.apiKey}`);
     const form = init.body as FormData;
-    expect(form.get('model')).toBe('gpt-4o-mini-transcribe');
+    expect(form.get('model')).toBe('gpt-4o-transcribe');
     // BCP 47 → ISO-639-1: the endpoint wants "es", not "es-ES".
     expect(form.get('language')).toBe('es');
     expect(form.get('file')).toBeInstanceOf(Blob);

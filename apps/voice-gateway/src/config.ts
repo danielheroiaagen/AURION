@@ -120,7 +120,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     stt = {
       apiUrl: sttUrl.replace(/\/+$/, ''),
       apiKey,
-      model: (env.STT_MODEL ?? 'gpt-4o-mini-transcribe').trim(),
+      model: (env.STT_MODEL ?? 'gpt-4o-transcribe').trim(),
       timeoutMs: parsePositiveInt(env.STT_TIMEOUT_MS, 30_000),
       maxAudioBytes: parsePositiveInt(env.STT_MAX_AUDIO_BYTES, 2_000_000),
     };
