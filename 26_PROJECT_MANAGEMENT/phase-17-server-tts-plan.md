@@ -3,7 +3,7 @@ project: AURION
 document: Phase 17 Server-Side TTS Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-11
 related: ADR-018, ADR-024, ADR-025, ADR-026
 ---
@@ -40,15 +40,15 @@ voice-output seam it will ride.
 
 ## Acceptance criteria
 
-- [ ] With `TTS_MODE=openai`, every agent reply round-trips:
+- [x] With `TTS_MODE=openai`, every agent reply round-trips:
       `turn.user`/`audio.utterance` → `turn.agent` (text first) →
       `audio.agent` (voice after); a synthesis failure delivers the text
       plus `tts_failed`, never silence.
-- [ ] `TTS_API_KEY` appears in gateway config only; contract tests prove
+- [x] `TTS_API_KEY` appears in gateway config only; contract tests prove
       the widget source contains no provider key or endpoint.
-- [ ] With gateway TTS active the widget does NOT also speak locally (no
+- [x] With gateway TTS active the widget does NOT also speak locally (no
       double voice); with it off, local `speechSynthesis` still works.
-- [ ] Runtime dependency sets unchanged (`ws` only on the gateway, zero on
+- [x] Runtime dependency sets unchanged (`ws` only on the gateway, zero on
       the widget); all suites green in CI with 0 vulnerabilities.
 
 ## Out of scope
@@ -60,4 +60,29 @@ voice-output seam it will ride.
 
 ## Closure evidence
 
-To be completed at phase close.
+Local verification passed on branch `phase-17/server-tts` (2026-06-11):
+
+- [x] `npm test` passed: **257** Python contract tests (13 new in
+      `tests/project/test_phase17_server_tts.py`).
+- [x] Gateway Vitest suite passed: **39** tests across 5 files, 8 of them
+      in the new `test/tts.spec.ts` (config fail-closed, synthesizer
+      against mocked fetch, text-before-voice ordering, failure survival).
+- [x] Widget Vitest suite passed: **20** tests (playback results,
+      blob URL cleanup, tts_enabled gating, voiced-reply flow).
+- [x] Typecheck clean on gateway and widget; widget bundle stays
+      zero-dependency (10.59 kB / 4.25 kB gzip); gitleaks clean on full
+      history (low-entropy fixtures from the start — phase 16 lesson).
+
+Remote verification on PR #31: all seven checks green on head `5067759`
+on the FIRST run (2026-06-11).
+
+Also shipped: STT default upgraded `gpt-4o-mini-transcribe` →
+`gpt-4o-transcribe` (Daniel's request; the strongest REST transcription
+model — no 5.x transcribe model exists, reasoning belongs to `LLM_MODEL`).
+
+Merge evidence: PR #31 squash-merged into `main` as `01661f6` on
+2026-06-11.
+
+Next: phase 18 — the HeyGen streaming avatar on this voice-output seam
+(needs a WebRTC/LiveKit media-channel ADR and a widget-dependency
+decision); OpenAI Realtime streaming remains behind the port seams.
