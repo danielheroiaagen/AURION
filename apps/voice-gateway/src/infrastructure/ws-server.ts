@@ -13,7 +13,7 @@ import type {
 import { SpeechSynthesisError } from './openai-speech.js';
 import { TranscriptionError } from './openai-transcriber.js';
 import { CallCapacity } from './call-capacity.js';
-import { handleTwilioCall, type TwilioBridgeOptions } from './twilio-bridge.js';
+import { handleTwilioCall, phoneDigits, type TwilioBridgeOptions } from './twilio-bridge.js';
 import { buildBusyTwiml, buildTwiml, validateTwilioSignature } from './twiml.js';
 import {
   parseClientEvent,
@@ -249,8 +249,15 @@ export function startWsServer(options: WsServerOptions): Server {
           response.end(buildBusyTwiml(telephony.lang));
           return;
         }
+        // Multi-tenant routing (ADR-035): the dialed number selects the
+        // tenant's client key; an unrouted number keeps the default key
+        // (single-tenant — additive, never breaks the existing number).
+        const dialed = params.To ?? params.Called ?? '';
+        const routedKey = dialed
+          ? options.twilio!.phoneToKey?.get(phoneDigits(dialed))
+          : undefined;
         response.writeHead(200, { 'content-type': 'text/xml' });
-        response.end(buildTwiml(telephony.publicUrl, options.clientKeys[0]));
+        response.end(buildTwiml(telephony.publicUrl, routedKey ?? options.clientKeys[0]));
       });
       return;
     }

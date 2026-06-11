@@ -99,6 +99,12 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-035 multi-tenant telephony: one gateway serves many client
+  tenants, each with its own number, WITHOUT changing the isolation model
+  — the dialed number selects the tenant's client key, the call uses that
+  tenant's own machine identity, and RLS enforces isolation as always.
+  `TELEPHONY_TENANT_ROUTES` (fail-closed JSON); empty = single-tenant,
+  fully backward compatible.
 - ADR-034 sales-ready guards: `CallCapacity` cost guard for paid
   traffic — concurrent and daily call caps enforced at the TwiML front
   door with a language-aware busy message spoken by Twilio's own TTS

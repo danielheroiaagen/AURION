@@ -51,6 +51,8 @@ export interface TelephonyConfig {
   /** Cost guards for paid traffic (ADR-034): simultaneous and daily caps. */
   readonly maxConcurrentCalls: number;
   readonly maxCallsPerDay: number;
+  /** Per-number tenant routes (ADR-035); empty = single-tenant. */
+  readonly routes: readonly TenantRoute[];
 }
 
 export interface OidcMachineConfig {
@@ -59,6 +61,23 @@ export interface OidcMachineConfig {
   readonly clientSecret: string;
   readonly audience: string | null;
   readonly timeoutMs: number;
+}
+
+/**
+ * One telephony tenant route (ADR-035): a dialed number bound to a tenant's
+ * own machine identity, client key and greeting. Isolation is the SAME as
+ * everywhere else — each route mints its tenant's OIDC token, and the API's
+ * RLS does the rest. Absent routes = single-tenant (today's behavior).
+ */
+export interface TenantRoute {
+  /** The dialed number (E.164) that selects this tenant. */
+  readonly phone: string;
+  /** Unique client key carried in the TwiML <Parameter>; identifies the route. */
+  readonly clientKey: string;
+  readonly greeting: string;
+  readonly lang: string;
+  /** Tenant's own client_credentials identity (its tenant_id is in the token). */
+  readonly oidc: OidcMachineConfig;
 }
 
 export interface GatewayConfig {
@@ -82,6 +101,81 @@ export interface GatewayConfig {
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Parse TELEPHONY_TENANT_ROUTES (ADR-035): a JSON array of
+ * { phone, clientKey, greeting, lang?, oidcClientId, oidcClientSecret,
+ *   oidcTokenUrl? }. Fail-closed: malformed JSON or an incomplete route
+ * aborts boot — a misconfigured tenant must never silently fall back to
+ * another tenant's identity. The token URL defaults to the gateway's own
+ * OIDC token URL (the same realm).
+ */
+function parseTenantRoutes(
+  raw: string | undefined,
+  baseOidc: OidcMachineConfig | null,
+): TenantRoute[] {
+  const text = (raw ?? '').trim();
+  if (!text) {
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('TELEPHONY_TENANT_ROUTES must be valid JSON (ADR-035).');
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error('TELEPHONY_TENANT_ROUTES must be a JSON array (ADR-035).');
+  }
+  const seenKeys = new Set<string>();
+  const seenPhones = new Set<string>();
+  return parsed.map((entry, index) => {
+    const route = entry as Record<string, unknown>;
+    const phone = typeof route.phone === 'string' ? route.phone.trim() : '';
+    const clientKey = typeof route.clientKey === 'string' ? route.clientKey.trim() : '';
+    const clientId = typeof route.oidcClientId === 'string' ? route.oidcClientId.trim() : '';
+    const clientSecret = typeof route.oidcClientSecret === 'string' ? route.oidcClientSecret : '';
+    if (!/^\+?[0-9]{6,15}$/.test(phone)) {
+      throw new Error(`TELEPHONY_TENANT_ROUTES[${index}].phone must be an E.164 number.`);
+    }
+    if (clientKey.length < 16) {
+      throw new Error(`TELEPHONY_TENANT_ROUTES[${index}].clientKey must be 16+ characters.`);
+    }
+    if (!clientId || clientSecret.length < 8) {
+      throw new Error(
+        `TELEPHONY_TENANT_ROUTES[${index}] requires oidcClientId and oidcClientSecret (ADR-035).`,
+      );
+    }
+    const tokenUrl =
+      (typeof route.oidcTokenUrl === 'string' ? route.oidcTokenUrl.trim() : '') ||
+      baseOidc?.tokenUrl;
+    if (!tokenUrl || !/^https?:\/\//.test(tokenUrl)) {
+      throw new Error(
+        `TELEPHONY_TENANT_ROUTES[${index}] needs an https oidcTokenUrl (or a global OIDC_TOKEN_URL).`,
+      );
+    }
+    if (seenKeys.has(clientKey) || seenPhones.has(phone)) {
+      throw new Error(`TELEPHONY_TENANT_ROUTES has a duplicate phone or clientKey at [${index}].`);
+    }
+    seenKeys.add(clientKey);
+    seenPhones.add(phone);
+    return {
+      phone,
+      clientKey,
+      greeting:
+        (typeof route.greeting === 'string' ? route.greeting.trim() : '') ||
+        'Hola, soy un asistente virtual de inteligencia artificial. ¿En qué puedo ayudarte?',
+      lang: (typeof route.lang === 'string' ? route.lang.trim() : '') || 'es-ES',
+      oidc: {
+        tokenUrl: tokenUrl.replace(/\/+$/, ''),
+        clientId,
+        clientSecret,
+        audience: baseOidc?.audience ?? null,
+        timeoutMs: baseOidc?.timeoutMs ?? 10_000,
+      },
+    };
+  });
 }
 
 export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): GatewayConfig {
@@ -260,6 +354,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
       sttModel: (env.TELEPHONY_STT_MODEL ?? '').trim(),
       maxConcurrentCalls: parsePositiveInt(env.TELEPHONY_MAX_CONCURRENT, 4),
       maxCallsPerDay: parsePositiveInt(env.TELEPHONY_MAX_CALLS_PER_DAY, 200),
+      routes: parseTenantRoutes(env.TELEPHONY_TENANT_ROUTES, oidc),
     };
   }
 

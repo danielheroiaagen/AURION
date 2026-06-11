@@ -449,6 +449,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           sttModel: '',
           maxConcurrentCalls: 4,
           maxCallsPerDay: 200,
+          routes: [],
         },
       },
       log: () => undefined,
@@ -530,6 +531,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           sttModel: '',
           maxConcurrentCalls: 4,
           maxCallsPerDay: 200,
+          routes: [],
         },
       },
       log: (message) => logs.push(message),
@@ -580,6 +582,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
         sttModel: '',
         maxConcurrentCalls: 4,
         maxCallsPerDay: 200,
+        routes: [],
       },
     };
     server?.close();
@@ -640,6 +643,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           sttModel: '',
           maxConcurrentCalls: 4,
           maxCallsPerDay: 200,
+          routes: [],
         },
       },
       log: () => undefined,
@@ -652,6 +656,50 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     expect(
       Buffer.from((greeting as { media: { payload: string } }).media.payload, 'base64').equals(ulaw),
     ).toBe(true);
+  });
+
+  it('routes a call to the tenant whose client key it carries (ADR-035)', async () => {
+    const tenantA = { startSession: vi.fn(async () => ({ sessionId: 'A-1' })), listPublishedKnowledge: async () => [], requestAction: async () => ({ actionId: 'a', status: 'requested', approvalRequired: true }), getActionStatus: async () => 'requested', closeSession: async () => undefined };
+    const tenantB = { startSession: vi.fn(async () => ({ sessionId: 'B-1' })), listPublishedKnowledge: async () => [], requestAction: async () => ({ actionId: 'b', status: 'requested', approvalRequired: true }), getActionStatus: async () => 'requested', closeSession: async () => undefined };
+    const KEY_B = 'tenant-b-key-'.padEnd(32, 'b');
+    const stt2 = fakeStreamingTranscriber();
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: {
+        clientKeys: [CLIENT_KEY, KEY_B],
+        api: tenantA,
+        routes: new Map([[KEY_B, { api: tenantB, greeting: 'Hola desde B.', lang: 'es-ES' }]]),
+        brain: new ScriptedBrain(),
+        transcriber: stt2.port,
+        synthesizer: { synthesize: async () => ({ audio: PCM_REPLY, mimeType: 'audio/pcm;rate=24000' }) },
+        telephony: {
+          greeting: 'Hola desde A.',
+          lang: 'es-ES',
+          silenceMs: 600,
+          twilioAuthToken: 'twilio-token-testtesttest',
+          publicUrl: 'https://aurion.test',
+          sttModel: '',
+          maxConcurrentCalls: 4,
+          maxCallsPerDay: 200,
+          routes: [],
+        },
+      },
+      log: () => undefined,
+    });
+    const port = (server.address() as { port: number }).port;
+    const phone = await connectPhone(port);
+    phone.send({ event: 'start', start: { streamSid: 'MZb', callSid: 'CAb', customParameters: { key: KEY_B } } });
+    await phone.next();
+    await vi.waitFor(() => expect(tenantB.startSession).toHaveBeenCalledWith('tw-CAb'));
+    expect(tenantA.startSession).not.toHaveBeenCalled();
+    phone.send({ event: 'stop' });
+    await phone.closed;
   });
 
   it('rejects calls without a valid key before any audio is processed', async () => {

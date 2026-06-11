@@ -8,6 +8,7 @@ import { OpenAiSpeechSynthesizer } from './infrastructure/openai-speech.js';
 import { OpenAiTranscriber } from './infrastructure/openai-transcriber.js';
 import { OpenAiRealtimeTranscriber } from './infrastructure/realtime-transcriber.js';
 import { ScriptedBrain } from './infrastructure/scripted-brain.js';
+import { phoneDigits, type CallIdentity } from './infrastructure/twilio-bridge.js';
 import { startWsServer } from './infrastructure/ws-server.js';
 
 // Fail closed: this throws before any socket opens if the config is incomplete.
@@ -35,6 +36,25 @@ if (config.telephonyMode === 'twilio' && config.ttsMode === 'heygen' && !ffmpegA
   throw new Error('TELEPHONY_MODE=twilio with heygen TTS requires the ffmpeg binary (ADR-029).');
 }
 
+// Per-tenant telephony routes (ADR-035): each route gets its OWN machine
+// identity (its tenant_id is in the minted token) and API client — the
+// isolation is the same RLS as everywhere, just a different actor.
+const routesByKey = new Map<string, CallIdentity>();
+const phoneToKey = new Map<string, string>();
+for (const route of config.telephony?.routes ?? []) {
+  const tenantApi = new AurionApiClient(
+    config.apiUrl,
+    ((provider) => provider.getToken.bind(provider))(new OidcTokenProvider(route.oidc)),
+  );
+  routesByKey.set(route.clientKey, {
+    api: tenantApi,
+    greeting: route.greeting,
+    lang: route.lang,
+  });
+  phoneToKey.set(phoneDigits(route.phone), route.clientKey);
+}
+const allClientKeys = [...config.clientKeys, ...routesByKey.keys()];
+
 startWsServer({
   port: config.port,
   clientKeys: config.clientKeys,
@@ -47,7 +67,9 @@ startWsServer({
   twilio:
     config.telephonyMode === 'twilio'
       ? {
-          clientKeys: config.clientKeys,
+          clientKeys: allClientKeys,
+          routes: routesByKey,
+          phoneToKey,
           api,
           brain,
           // The greeting doubles as the transcription's context bias: the
