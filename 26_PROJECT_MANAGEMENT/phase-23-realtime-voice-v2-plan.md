@@ -3,7 +3,7 @@ project: AURION
 document: Phase 23 Realtime Voice v2 Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-11
 related: ADR-022, ADR-027, ADR-032
 ---
@@ -31,11 +31,11 @@ decisions.
 
 ## Acceptance criteria
 
-- [ ] A phone turn starts speaking in ~2 s (timing logs as evidence).
-- [ ] gpt-realtime-whisper transcribes the call with adapter VAD; the
+- [x] A phone turn starts speaking in ~2 s (timing logs as evidence).
+- [x] gpt-realtime-whisper transcribes the call with adapter VAD; the
       widget REST path is untouched.
-- [ ] Echoed agent speech is dropped and logged, never a turn.
-- [ ] All suites green; runtime deps unchanged (`ws` only).
+- [x] Echoed agent speech is dropped and logged, never a turn.
+- [x] All suites green; runtime deps unchanged (`ws` only).
 
 ## Out of scope
 
@@ -45,4 +45,24 @@ decisions.
 
 ## Closure evidence
 
-To be completed at phase close.
+- PR #45 squash-merged into `main` as `bb1113b` (2026-06-11), all checks
+  green; 307 contract tests (7 new), 74 gateway Vitest tests (3 new).
+- Live contract checks BEFORE the call: gpt-realtime-whisper session
+  accepted from the production container (`session.updated`); two
+  simulated Twilio calls against the public `/twilio` (greeting media at
+  1.4 s; loud-audio burst exercised VAD onset → barge-in `clear` →
+  manual commit → whisper answered an honest empty transcript, no ghost
+  turn).
+- Daniel's two silent calls (14:02/14:30 UTC) were diagnosed WITH data
+  (gateway logs empty + Twilio call records completed + signed /twiml
+  200 + healthy simulations): they hit container-recreation windows
+  during deploys. Operating rule adopted: no deploys while the operator
+  is testing the line.
+- LIVE verification call (Daniel, 14:38 UTC, watched turn-by-turn via a
+  log monitor): 7 turns, brain 757–1219 ms (avg ≈ 950 ms vs 1.6–5.2 s
+  before), faithful Spanish transcriptions including a long compound
+  sentence, language held the whole call, and the loop closed end to
+  end — session `tw-CA48061b…` recorded `completed` with a Spanish
+  transcript summary and `ticket.create` registered awaiting approval:
+  "Solicitud de consultoría RIA para automatizar atención al cliente en
+  clínicas dentales e inmobiliarias".
