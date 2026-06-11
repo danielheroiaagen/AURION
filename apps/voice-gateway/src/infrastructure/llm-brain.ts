@@ -139,6 +139,16 @@ export class LlmBrain implements AgentBrainPort {
         role: turn.speaker === 'caller' ? 'user' : 'assistant',
         content: turn.text,
       })),
+      // Recency beats verbosity: a trailing reminder holds the language
+      // lock better than the opening prompt alone (live drift evidence).
+      ...(context.lang
+        ? [
+            {
+              role: 'system',
+              content: `CRITICAL: detect the language of the caller's LAST message and reply ONLY in that language. If ambiguous or mixed, reply in ${context.lang}.`,
+            },
+          ]
+        : []),
     ];
 
     const controller = new AbortController();

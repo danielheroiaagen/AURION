@@ -44,7 +44,13 @@ startWsServer({
           clientKeys: config.clientKeys,
           api,
           brain,
-          transcriber: new OpenAiRealtimeTranscriber(config.stt!, config.telephony!.silenceMs),
+          // The greeting doubles as the transcription's context bias: the
+          // literal first words of the call, in the channel language.
+          transcriber: new OpenAiRealtimeTranscriber(
+            config.stt!,
+            config.telephony!.silenceMs,
+            config.telephony!.greeting,
+          ),
           // HeyGen speaks MP3 and is decoded by ffmpeg; OpenAI speaks PCM natively.
           synthesizer:
             config.ttsMode === 'heygen'

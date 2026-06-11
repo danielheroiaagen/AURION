@@ -115,6 +115,10 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
             stream = await options.transcriber.open(
               {
                 onUtterance: (text) => {
+                  // Transcript TEXT in logs is within the ADR-025 boundary
+                  // (audio never is) — and it is the only way to diagnose
+                  // language drift with data instead of ears.
+                  log(`phone turn heard: "${text.slice(0, 120)}"`);
                   if (text.length > 0) {
                     runTurn(text);
                   }
