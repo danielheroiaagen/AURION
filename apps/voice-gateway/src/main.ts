@@ -3,6 +3,7 @@ import { AurionApiClient } from './infrastructure/aurion-api.client.js';
 import { HeyGenSpeechSynthesizer } from './infrastructure/heygen-speech.js';
 import { LlmBrain } from './infrastructure/llm-brain.js';
 import { ffmpegAvailable, mp3ToUlaw8k } from './infrastructure/mp3-ulaw.js';
+import { OidcTokenProvider } from './infrastructure/oidc-token-provider.js';
 import { OpenAiSpeechSynthesizer } from './infrastructure/openai-speech.js';
 import { OpenAiTranscriber } from './infrastructure/openai-transcriber.js';
 import { OpenAiRealtimeTranscriber } from './infrastructure/realtime-transcriber.js';
@@ -12,7 +13,12 @@ import { startWsServer } from './infrastructure/ws-server.js';
 // Fail closed: this throws before any socket opens if the config is incomplete.
 const config = loadGatewayConfig();
 
-const api = new AurionApiClient(config.apiUrl, config.voiceAgentToken);
+// Machine identity: real-IdP client_credentials when configured (ADR-033),
+// the static dev token otherwise — validated fail-closed at load time.
+const tokenSource = config.oidc
+  ? ((provider) => provider.getToken.bind(provider))(new OidcTokenProvider(config.oidc))
+  : config.voiceAgentToken!;
+const api = new AurionApiClient(config.apiUrl, tokenSource);
 // BRAIN_MODE is validated fail-closed at load time (ADR-018/ADR-022).
 const brain = config.brainMode === 'llm' ? new LlmBrain(config.llm!) : new ScriptedBrain();
 

@@ -32,11 +32,16 @@ interface ActionShape {
 }
 
 export class AurionApiClient implements AurionApiPort {
+  private readonly tokenProvider: () => Promise<string>;
+
   constructor(
     private readonly baseUrl: string,
-    private readonly token: string,
+    /** Static JWT (hs256 dev) or an async provider (real IdP, ADR-033). */
+    token: string | (() => Promise<string>),
     private readonly fetchImpl: typeof fetch = fetch,
-  ) {}
+  ) {
+    this.tokenProvider = typeof token === 'string' ? async () => token : token;
+  }
 
   async startSession(externalSessionId: string): Promise<StartedSession> {
     const session = await this.request<VoiceSessionShape>('POST', '/voice-sessions', {
@@ -106,7 +111,7 @@ export class AurionApiClient implements AurionApiPort {
   ): Promise<T> {
     const headers: Record<string, string> = {
       accept: 'application/json',
-      authorization: `Bearer ${this.token}`,
+      authorization: `Bearer ${await this.tokenProvider()}`,
     };
     if (options.body !== undefined) {
       headers['content-type'] = 'application/json';
