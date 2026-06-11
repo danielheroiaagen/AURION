@@ -39,6 +39,8 @@ export class ConversationEngine {
   constructor(
     private readonly api: AurionApiPort,
     private readonly brain: AgentBrainPort,
+    /** Channel's expected caller language (e.g. the phone line's es-ES). */
+    private readonly lang?: string,
   ) {}
 
   get isStarted(): boolean {
@@ -66,6 +68,7 @@ export class ConversationEngine {
     const reply = await this.brain.respond({
       transcript: this.conversation.transcript,
       knowledge,
+      lang: this.lang,
     });
     this.conversation.addAgentTurn(reply.text);
 

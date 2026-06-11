@@ -15,6 +15,8 @@ export interface LlmConfig {
   readonly model: string;
   readonly timeoutMs: number;
   readonly maxTokens: number;
+  /** Reasoning-model latency lever (gpt-5.x): omit to send nothing. */
+  readonly reasoningEffort: string | null;
 }
 
 export interface SttConfig {
@@ -106,12 +108,19 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     if (!model) {
       throw new Error('LLM_MODEL is required in llm mode (ADR-022).');
     }
+    const reasoningEffort = (env.LLM_REASONING_EFFORT ?? '').trim() || null;
+    if (reasoningEffort && !['minimal', 'low', 'medium', 'high'].includes(reasoningEffort)) {
+      throw new Error(
+        `LLM_REASONING_EFFORT "${reasoningEffort}" is unknown; supported: minimal, low, medium, high.`,
+      );
+    }
     llm = {
       apiUrl: llmUrl.replace(/\/+$/, ''),
       apiKey,
       model,
       timeoutMs: parsePositiveInt(env.LLM_TIMEOUT_MS, 30_000),
       maxTokens: parsePositiveInt(env.LLM_MAX_TOKENS, 300),
+      reasoningEffort,
     };
   }
 
