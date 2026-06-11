@@ -15,8 +15,6 @@ export interface LlmConfig {
   readonly model: string;
   readonly timeoutMs: number;
   readonly maxTokens: number;
-  /** Reasoning-model latency lever (gpt-5.x): omit to send nothing. */
-  readonly reasoningEffort: string | null;
 }
 
 export interface SttConfig {
@@ -44,6 +42,8 @@ export interface TelephonyConfig {
   readonly twilioAuthToken: string;
   /** The https origin Twilio reaches us at — pinned, never derived from headers. */
   readonly publicUrl: string;
+  /** Streaming STT model for the call (ADR-032); empty → STT_MODEL. */
+  readonly sttModel: string;
 }
 
 export interface GatewayConfig {
@@ -108,19 +108,16 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     if (!model) {
       throw new Error('LLM_MODEL is required in llm mode (ADR-022).');
     }
-    const reasoningEffort = (env.LLM_REASONING_EFFORT ?? '').trim() || null;
-    if (reasoningEffort && !['minimal', 'low', 'medium', 'high'].includes(reasoningEffort)) {
-      throw new Error(
-        `LLM_REASONING_EFFORT "${reasoningEffort}" is unknown; supported: minimal, low, medium, high.`,
-      );
-    }
+    // NOTE: no reasoning_effort lever here. With function tools (which the
+    // brain ALWAYS sends) gpt-5.4/5.5 reject it on /v1/chat/completions —
+    // brain latency is governed by the MODEL choice (LLM_MODEL), measured
+    // live: gpt-5.4-mini ≈ 0.9s vs gpt-5.5 ≈ 4s with identical payloads.
     llm = {
       apiUrl: llmUrl.replace(/\/+$/, ''),
       apiKey,
       model,
       timeoutMs: parsePositiveInt(env.LLM_TIMEOUT_MS, 30_000),
       maxTokens: parsePositiveInt(env.LLM_MAX_TOKENS, 300),
-      reasoningEffort,
     };
   }
 
@@ -212,6 +209,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
       silenceMs: parsePositiveInt(env.TELEPHONY_SILENCE_MS, 600),
       twilioAuthToken,
       publicUrl: publicUrl.replace(/\/+$/, ''),
+      sttModel: (env.TELEPHONY_STT_MODEL ?? '').trim(),
     };
   }
 

@@ -84,6 +84,31 @@ describe('OpenAiSpeechSynthesizer (fetch only, no SDK)', () => {
     expect(body.input).toHaveLength(10);
   });
 
+  it('streams pcm chunks as the provider renders them (ADR-032)', async () => {
+    async function* body() {
+      yield new Uint8Array([1, 2, 3, 4, 5, 6]);
+      yield new Uint8Array([7, 8]);
+    }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, body: body() });
+    const synthesizer = new OpenAiSpeechSynthesizer(
+      TTS_CONFIG,
+      fetchMock as unknown as typeof fetch,
+      'pcm',
+    );
+    const chunks: Buffer[] = [];
+    await synthesizer.synthesizeStream('hola', (chunk) => chunks.push(chunk));
+    expect(Buffer.concat(chunks)).toEqual(Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).response_format).toBe('pcm');
+
+    // The mp3 form refuses to stream — the phone is the only consumer.
+    await expect(
+      new OpenAiSpeechSynthesizer(TTS_CONFIG, fetchMock as unknown as typeof fetch).synthesizeStream(
+        'x',
+        () => undefined,
+      ),
+    ).rejects.toThrow(/pcm/);
+  });
+
   it('raises SpeechSynthesisError on upstream failure or empty audio', async () => {
     const failing = vi.fn().mockResolvedValue(new Response('nope', { status: 500 }));
     const broken = new OpenAiSpeechSynthesizer(TTS_CONFIG, failing as unknown as typeof fetch);

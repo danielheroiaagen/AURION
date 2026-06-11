@@ -74,6 +74,10 @@ export interface SpeechSynthesisPort {
   /** Spoken audio for one agent reply. Audio is an enhancement (ADR-026):
    * the TEXT event is the source of truth and is delivered first. */
   synthesize(text: string): Promise<SynthesizedSpeech>;
+  /** Optional streaming form (ADR-032): emits raw audio chunks as the
+   * provider produces them — the phone starts speaking ~4x sooner.
+   * Resolves when the stream ends; chunk format matches `synthesize`. */
+  synthesizeStream?(text: string, onAudio: (chunk: Buffer) => void): Promise<void>;
 }
 
 // --- AURION API (system of record) ------------------------------------------

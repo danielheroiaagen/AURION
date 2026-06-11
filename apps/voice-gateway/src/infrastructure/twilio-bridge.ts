@@ -33,6 +33,17 @@ export interface TwilioBridgeOptions {
 
 const APOLOGY = 'Disculpa, ha habido un problema técnico. ¿Puedes repetirlo?';
 
+/** Accent/punctuation-insensitive form for the echo guard. */
+function normalizeForEcho(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions): void {
   const log = options.log ?? ((message: string) => process.stdout.write(`${message}\n`));
   // The phone line's language pins the brain's reply language (a caller
@@ -60,7 +71,44 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
     }
   };
 
+  let lastSpoken = '';
+
+  /** Streaming path (ADR-032): transcode and ship frames as PCM arrives —
+   * the caller hears the first word while the rest still renders. */
+  const sayStreaming = async (text: string): Promise<void> => {
+    let pcmCarry = Buffer.alloc(0);
+    let ulawCarry = Buffer.alloc(0);
+    await options.synthesizer.synthesizeStream!(text, (pcmChunk) => {
+      const data = Buffer.concat([pcmCarry, pcmChunk]);
+      // 3 input samples (6 bytes of PCM16 @24k) become 1 μ-law byte @8k.
+      const usable = Math.floor(data.length / 6) * 6;
+      pcmCarry = data.subarray(usable);
+      if (usable === 0) {
+        return;
+      }
+      const out = Buffer.concat([ulawCarry, pcm16ToUlaw8k(data.subarray(0, usable))]);
+      const whole = Math.floor(out.length / 160) * 160;
+      ulawCarry = out.subarray(whole);
+      if (whole > 0) {
+        sendFrames(out.subarray(0, whole));
+      }
+    });
+    const tailPcm = pcmCarry.subarray(0, Math.floor(pcmCarry.length / 6) * 6);
+    const tail = Buffer.concat([
+      ulawCarry,
+      tailPcm.length > 0 ? pcm16ToUlaw8k(tailPcm) : Buffer.alloc(0),
+    ]);
+    if (tail.length > 0) {
+      sendFrames(tail);
+    }
+  };
+
   const say = async (text: string): Promise<void> => {
+    lastSpoken = text;
+    if (typeof options.synthesizer.synthesizeStream === 'function' && !options.mp3ToUlaw) {
+      await sayStreaming(text);
+      return;
+    }
     const speech = await options.synthesizer.synthesize(text);
     if (speech.mimeType.startsWith('audio/pcm')) {
       sendFrames(pcm16ToUlaw8k(speech.audio));
@@ -119,9 +167,18 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
                   // (audio never is) — and it is the only way to diagnose
                   // language drift with data instead of ears.
                   log(`phone turn heard: "${text.slice(0, 120)}"`);
-                  if (text.length > 0) {
-                    runTurn(text);
+                  if (text.length === 0) {
+                    return;
                   }
+                  // Echo guard (ADR-032): the line transcribed OUR OWN
+                  // greeting as caller speech on a live call — anything we
+                  // just said never becomes a turn.
+                  const heard = normalizeForEcho(text);
+                  if (heard.length >= 8 && normalizeForEcho(lastSpoken).includes(heard)) {
+                    log('phone turn dropped as echo of the agent voice');
+                    return;
+                  }
+                  runTurn(text);
                 },
                 onSpeechStarted: () => {
                   // Barge-in v1 (ADR-027): the caller talks, the agent yields.

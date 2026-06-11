@@ -165,12 +165,9 @@ export class LlmBrain implements AgentBrainPort {
           model: this.config.model,
           // GPT-5-era models REJECT max_tokens (400) and require this name;
           // OpenAI-compatible servers accept it too. Found live on the phone.
+          // (reasoning_effort is NOT sent: with tools it 400s on these
+          // models — latency is governed by the LLM_MODEL choice.)
           max_completion_tokens: this.config.maxTokens,
-          // Latency lever for reasoning models (measured live on gpt-5.5:
-          // low ≈ 1.7 s vs ≈ 3.0 s default; 'minimal' is rejected there).
-          ...(this.config.reasoningEffort
-            ? { reasoning_effort: this.config.reasoningEffort }
-            : {}),
           messages,
           tools: TOOL_CATALOG,
         }),

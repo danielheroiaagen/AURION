@@ -277,6 +277,49 @@ describe('OpenAiRealtimeTranscriber (ws client, audio/pcmu, ADR-027)', () => {
       transcriber.open({ onUtterance: vi.fn(), onError: vi.fn() }),
     ).rejects.toThrow(/Realtime/);
   });
+
+  it('runs its own VAD for gpt-realtime-whisper: no server turn_detection, manual commits (ADR-032)', async () => {
+    const provider = await startFakeProvider();
+    const transcriber = new OpenAiRealtimeTranscriber(
+      { ...STT_CONFIG, apiUrl: `http://127.0.0.1:${provider.port}`, model: 'gpt-realtime-whisper' },
+      400,
+    );
+    const onSpeechStarted = vi.fn();
+    const stream = await transcriber.open(
+      { onUtterance: vi.fn(), onSpeechStarted, onError: vi.fn() },
+      'es-ES',
+    );
+
+    await vi.waitFor(() => expect(provider.received.length).toBeGreaterThan(0));
+    const session = (provider.received[0] as {
+      session: {
+        audio: { input: { transcription: { delay?: string }; turn_detection?: unknown } };
+      };
+    }).session.audio.input;
+    expect(session.turn_detection).toBeUndefined();
+    expect(session.transcription.delay).toBe('low');
+
+    // 200 ms of loud speech → onSpeechStarted, no commit yet.
+    stream.push(Buffer.alloc(1600, linearToUlaw(9000)));
+    await vi.waitFor(() => expect(onSpeechStarted).toHaveBeenCalled());
+    expect(
+      provider.received.filter((e) => (e as { type?: string }).type === 'input_audio_buffer.commit'),
+    ).toHaveLength(0);
+
+    // 400 ms of silence → exactly one manual commit.
+    stream.push(Buffer.alloc(1600, 0xff));
+    stream.push(Buffer.alloc(1600, 0xff));
+    await vi.waitFor(() => {
+      expect(
+        provider.received.filter(
+          (e) => (e as { type?: string }).type === 'input_audio_buffer.commit',
+        ),
+      ).toHaveLength(1);
+    });
+
+    stream.close();
+    provider.close();
+  });
 });
 
 // --- Bridge call flow ---------------------------------------------------------
@@ -403,6 +446,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           silenceMs: 600,
           twilioAuthToken: 'twilio-token-testtesttest',
           publicUrl: 'https://aurion.test',
+          sttModel: '',
         },
       },
       log: () => undefined,
@@ -449,6 +493,68 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     expect(await phone.next()).toEqual({ event: 'clear', streamSid: 'MZ1' });
   });
 
+  it('streams PCM replies as frames and drops echoes of its own voice (ADR-032)', async () => {
+    const stt = fakeStreamingTranscriber();
+    const logs: string[] = [];
+    // 750 samples of PCM16 @24k in two misaligned chunks → 250 μ-law bytes.
+    const pcmA = Buffer.alloc(902);
+    const pcmB = Buffer.alloc(598);
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: {
+        clientKeys: [CLIENT_KEY],
+        api: fakeApi(),
+        brain: new ScriptedBrain(),
+        transcriber: stt.port,
+        synthesizer: {
+          synthesize: async () => ({ audio: Buffer.alloc(0), mimeType: 'audio/pcm' }),
+          synthesizeStream: async (_text, onAudio) => {
+            onAudio(pcmA);
+            onAudio(pcmB);
+          },
+        },
+        telephony: {
+          greeting: 'Hola, soy AURION, tu asistente.',
+          lang: 'es-ES',
+          silenceMs: 600,
+          twilioAuthToken: 'twilio-token-testtesttest',
+          publicUrl: 'https://aurion.test',
+          sttModel: '',
+        },
+      },
+      log: (message) => logs.push(message),
+    });
+    const port = (server.address() as { port: number }).port;
+    const phone = await connectPhone(port);
+    phone.send(startEvent(CLIENT_KEY));
+
+    // Greeting arrives as a whole 160-byte frame plus the 90-byte tail.
+    const first = await phone.next();
+    const second = await phone.next();
+    const bytes = (event: unknown): number =>
+      Buffer.from((event as { media: { payload: string } }).media.payload, 'base64').length;
+    expect(bytes(first) + bytes(second)).toBe(250);
+    expect(bytes(first)).toBe(160);
+
+    // The line echoing our own greeting never becomes a turn.
+    stt.handlers().onUtterance('Hola, soy AURION, tu asistente.');
+    await vi.waitFor(() =>
+      expect(logs.some((line) => line.includes('dropped as echo'))).toBe(true),
+    );
+    expect(logs.some((line) => line.includes('turn timing'))).toBe(false);
+
+    // A real utterance still runs the engine and streams its reply.
+    stt.handlers().onUtterance('necesito ayuda con un problema de mi pedido');
+    expect(await phone.next()).toMatchObject({ event: 'media', streamSid: 'MZ1' });
+    await vi.waitFor(() => expect(logs.some((line) => line.includes('turn timing'))).toBe(true));
+  });
+
   it('voices MP3 synthesis through the injected transcoder (ADR-029, operator voice)', async () => {
     const stt = fakeStreamingTranscriber();
     const ulaw = Buffer.alloc(160, 0x7f);
@@ -475,6 +581,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           silenceMs: 600,
           twilioAuthToken: 'twilio-token-testtesttest',
           publicUrl: 'https://aurion.test',
+          sttModel: '',
         },
       },
       log: () => undefined,
