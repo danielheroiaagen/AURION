@@ -46,10 +46,21 @@ export interface TelephonyConfig {
   readonly sttModel: string;
 }
 
+export interface OidcMachineConfig {
+  readonly tokenUrl: string;
+  readonly clientId: string;
+  readonly clientSecret: string;
+  readonly audience: string | null;
+  readonly timeoutMs: number;
+}
+
 export interface GatewayConfig {
   readonly port: number;
   readonly apiUrl: string;
-  readonly voiceAgentToken: string;
+  /** Static machine JWT (hs256 dev); null when a real IdP mints it (ADR-033). */
+  readonly voiceAgentToken: string | null;
+  /** client_credentials identity against the IdP; null in static mode. */
+  readonly oidc: OidcMachineConfig | null;
   readonly clientKeys: readonly string[];
   readonly brainMode: BrainMode;
   readonly llm: LlmConfig | null;
@@ -72,10 +83,34 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     throw new Error('AURION_API_URL is required (http(s) URL of the AURION API).');
   }
 
-  const voiceAgentToken = env.VOICE_AGENT_TOKEN;
-  if (!voiceAgentToken || voiceAgentToken.split('.').length !== 3) {
+  // Machine identity (ADR-018/ADR-033): EITHER a static JWT (hs256 dev)
+  // OR client_credentials against a real IdP — never neither.
+  let oidc: OidcMachineConfig | null = null;
+  const oidcTokenUrl = (env.OIDC_TOKEN_URL ?? '').trim();
+  if (oidcTokenUrl) {
+    if (!/^https?:\/\//.test(oidcTokenUrl)) {
+      throw new Error('OIDC_TOKEN_URL must be an http(s) URL (ADR-033).');
+    }
+    const clientId = (env.OIDC_CLIENT_ID ?? '').trim();
+    const clientSecret = env.OIDC_CLIENT_SECRET ?? '';
+    if (!clientId || clientSecret.length < 8) {
+      throw new Error(
+        'OIDC_CLIENT_ID and OIDC_CLIENT_SECRET are required with OIDC_TOKEN_URL (ADR-033).',
+      );
+    }
+    oidc = {
+      tokenUrl: oidcTokenUrl.replace(/\/+$/, ''),
+      clientId,
+      clientSecret,
+      audience: (env.OIDC_AUDIENCE ?? '').trim() || null,
+      timeoutMs: parsePositiveInt(env.OIDC_TIMEOUT_MS, 10_000),
+    };
+  }
+
+  const voiceAgentToken = (env.VOICE_AGENT_TOKEN ?? '').trim() || null;
+  if (!oidc && (!voiceAgentToken || voiceAgentToken.split('.').length !== 3)) {
     throw new Error(
-      'VOICE_AGENT_TOKEN is required and must be a JWT for a voice_agent actor (ADR-018).',
+      'VOICE_AGENT_TOKEN (a JWT) or OIDC_TOKEN_URL (real IdP) is required for the voice_agent identity (ADR-018/ADR-033).',
     );
   }
 
@@ -217,6 +252,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     port: parsePositiveInt(env.PORT, 8080),
     apiUrl: apiUrl.replace(/\/+$/, ''),
     voiceAgentToken,
+    oidc,
     clientKeys,
     brainMode,
     llm,

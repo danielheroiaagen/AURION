@@ -99,6 +99,15 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-033 self-hosted IdP: Keycloak as a compose service (`--profile
+  idp`, /auth behind the edge, schema in the aurion postgres) closes the
+  go-live hs256 exception. Realm bootstrap is a reviewable kcadm script
+  (PKCE dashboard client; confidential voice-gateway client with
+  hardcoded actor_type/tenant_id mappers; audience aurion-api). The
+  gateway now mints its own short-lived machine tokens
+  (client_credentials, cached, single-flight, early refresh) instead of
+  holding a 365-day JWT; config fail-closed on exactly one identity
+  mechanism.
 - ADR-032 realtime voice v2: phone turns drop from ~5-7s to ~2s to the
   first spoken word. Brain latency governed by model choice
   (gpt-5.4-mini measured ≈0.9s with tools vs ≈4s on gpt-5.5; the dead

@@ -84,7 +84,14 @@ services:
     environment:
       PORT: '8080'
       AURION_API_URL: http://api:3000
-      VOICE_AGENT_TOKEN: ${VOICE_AGENT_TOKEN:?set VOICE_AGENT_TOKEN}
+      # Machine identity (ADR-018/ADR-033): static JWT for dev, or
+      # client_credentials against the IdP — the gateway validates that
+      # exactly one mechanism is configured.
+      VOICE_AGENT_TOKEN: ${VOICE_AGENT_TOKEN:-}
+      OIDC_TOKEN_URL: ${OIDC_TOKEN_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
       VOICE_GATEWAY_CLIENT_KEYS: ${VOICE_GATEWAY_CLIENT_KEYS:?set VOICE_GATEWAY_CLIENT_KEYS}
       BRAIN_MODE: ${BRAIN_MODE:-scripted}
       # LLM brain (ADR-022). Required when BRAIN_MODE=llm; fail-closed at boot.
@@ -123,7 +130,37 @@ services:
     build:
       context: .
       dockerfile: docker/dashboard.Dockerfile
+      args:
+        # Public OIDC endpoints + public client id (ADR-021/ADR-033).
+        VITE_OIDC_AUTHORIZATION_URL: ${VITE_OIDC_AUTHORIZATION_URL:-}
+        VITE_OIDC_TOKEN_URL: ${VITE_OIDC_TOKEN_URL:-}
+        VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-}
+        VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE:-}
+        VITE_OIDC_AUDIENCE: ${VITE_OIDC_AUDIENCE:-}
     profiles: ['full']
+
+  # Self-hosted IdP (ADR-033): closes the ADR-016 jwks production rule
+  # without external accounts. Schema lives in the aurion postgres under
+  # its own database/role. Enable with --profile idp.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    profiles: ['idp']
+    command: ['start', '--http-relative-path', '/auth']
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      # Interpolated even when the profile is off → defaults, and the
+      # container itself fails closed on empty values at startup.
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: 'true'
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   edge:
     image: caddy:2-alpine

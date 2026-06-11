@@ -58,7 +58,10 @@ class ComposeTests(unittest.TestCase):
             "${POSTGRES_PASSWORD:?",
             "${DATA_ENCRYPTION_KEYS:?",
             "${HERMES_DISPATCH_SECRET:?",
-            "${VOICE_AGENT_TOKEN:?",
+            # VOICE_AGENT_TOKEN moved to `:-`: in IdP mode (ADR-033) the
+            # gateway mints its own tokens and enforces fail-closed itself
+            # (exactly one identity mechanism).
+            "${VOICE_AGENT_TOKEN:-",
             "${VOICE_GATEWAY_CLIENT_KEYS:?",
         ]:
             self.assertIn(required, compose)
