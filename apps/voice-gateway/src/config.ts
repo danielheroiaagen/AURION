@@ -178,10 +178,11 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
   let telephony: TelephonyConfig | null = null;
   if (telephonyMode === 'twilio') {
     // A phone call has no text fallback: a gateway that cannot both hear
-    // and speak must not answer phones (ADR-027).
-    if (sttMode !== 'openai' || ttsMode !== 'openai') {
+    // and speak must not answer phones (ADR-027). Any speaking mode
+    // qualifies — heygen replies are decoded by ffmpeg (ADR-029).
+    if (sttMode !== 'openai' || ttsMode === 'off') {
       throw new Error(
-        'TELEPHONY_MODE=twilio requires STT_MODE=openai and TTS_MODE=openai (ADR-027).',
+        'TELEPHONY_MODE=twilio requires STT_MODE=openai and TTS_MODE=openai|heygen (ADR-027/ADR-029).',
       );
     }
     const twilioAuthToken = env.TWILIO_AUTH_TOKEN;

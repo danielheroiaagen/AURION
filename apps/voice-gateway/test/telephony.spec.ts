@@ -67,6 +67,17 @@ describe('telephony configuration (fail closed, ADR-027/ADR-028)', () => {
     );
   });
 
+  it('answers phones with the heygen voice too (ADR-029: any speaking mode qualifies)', () => {
+    const config = loadGatewayConfig({
+      ...PHONE_ENV,
+      TTS_MODE: 'heygen',
+      TTS_API_KEY: 'hg-testtesttest',
+      TTS_VOICE: 'voice-id-testtest',
+    });
+    expect(config.telephonyMode).toBe('twilio');
+    expect(config.ttsMode).toBe('heygen');
+  });
+
   it('refuses twilio mode without the signature token and a pinned https origin (ADR-028)', () => {
     expect(() =>
       loadGatewayConfig({ ...PHONE_ENV, TWILIO_AUTH_TOKEN: undefined as never }),
