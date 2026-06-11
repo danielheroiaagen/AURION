@@ -37,6 +37,22 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&apos;');
 }
 
+/** Over-capacity answer (ADR-034): Twilio's own TTS speaks the busy
+ * message — the call never touches our billed providers. */
+export function buildBusyTwiml(lang: string): string {
+  const spanish = lang.toLowerCase().startsWith('es');
+  const message = spanish
+    ? 'En este momento todas nuestras líneas están ocupadas. Por favor, inténtalo de nuevo en unos minutos.'
+    : 'All of our lines are busy right now. Please try again in a few minutes.';
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<Response>',
+    `<Say language="${escapeXml(spanish ? 'es-ES' : lang || 'en-US')}">${escapeXml(message)}</Say>`,
+    '<Hangup/>',
+    '</Response>',
+  ].join('');
+}
+
 /** The ADR-027 connect snippet, generated from current config. */
 export function buildTwiml(publicUrl: string, clientKey: string): string {
   const streamUrl = `${publicUrl.replace(/^http/, 'ws').replace(/\/+$/, '')}/twilio`;

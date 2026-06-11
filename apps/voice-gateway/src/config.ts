@@ -48,6 +48,9 @@ export interface TelephonyConfig {
   readonly publicUrl: string;
   /** Streaming STT model for the call (ADR-032); empty → STT_MODEL. */
   readonly sttModel: string;
+  /** Cost guards for paid traffic (ADR-034): simultaneous and daily caps. */
+  readonly maxConcurrentCalls: number;
+  readonly maxCallsPerDay: number;
 }
 
 export interface OidcMachineConfig {
@@ -255,6 +258,8 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
       twilioAuthToken,
       publicUrl: publicUrl.replace(/\/+$/, ''),
       sttModel: (env.TELEPHONY_STT_MODEL ?? '').trim(),
+      maxConcurrentCalls: parsePositiveInt(env.TELEPHONY_MAX_CONCURRENT, 4),
+      maxCallsPerDay: parsePositiveInt(env.TELEPHONY_MAX_CALLS_PER_DAY, 200),
     };
   }
 

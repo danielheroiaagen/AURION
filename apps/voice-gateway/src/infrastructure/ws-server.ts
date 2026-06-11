@@ -12,8 +12,9 @@ import type {
 } from '../application/ports.js';
 import { SpeechSynthesisError } from './openai-speech.js';
 import { TranscriptionError } from './openai-transcriber.js';
+import { CallCapacity } from './call-capacity.js';
 import { handleTwilioCall, type TwilioBridgeOptions } from './twilio-bridge.js';
-import { buildTwiml, validateTwilioSignature } from './twiml.js';
+import { buildBusyTwiml, buildTwiml, validateTwilioSignature } from './twiml.js';
 import {
   parseClientEvent,
   ProtocolError,
@@ -187,9 +188,19 @@ export function startWsServer(options: WsServerOptions): Server {
     });
   });
 
+  // Cost guard (ADR-034): one shared meter between the TwiML door and the
+  // call bridge — over-capacity calls are answered politely and never
+  // touch the billed providers.
+  const capacity = options.twilio
+    ? new CallCapacity(
+        options.twilio.telephony.maxConcurrentCalls,
+        options.twilio.telephony.maxCallsPerDay,
+      )
+    : null;
+
   const twilioServer = options.twilio ? new WebSocketServer({ noServer: true }) : null;
   twilioServer?.on('connection', (socket: WebSocket) => {
-    handleTwilioCall(socket, { ...options.twilio!, log });
+    handleTwilioCall(socket, { ...options.twilio!, capacity: capacity!, log });
   });
 
   const httpServer = createServer((request, response) => {
@@ -229,6 +240,13 @@ export function startWsServer(options: WsServerOptions): Server {
         ) {
           response.writeHead(403, { 'content-type': 'text/plain' });
           response.end('Invalid Twilio signature.');
+          return;
+        }
+        if (capacity && !capacity.hasRoom()) {
+          const used = capacity.snapshot();
+          log(`call refused at capacity: active=${used.active} today=${used.today} (ADR-034)`);
+          response.writeHead(200, { 'content-type': 'text/xml' });
+          response.end(buildBusyTwiml(telephony.lang));
           return;
         }
         response.writeHead(200, { 'content-type': 'text/xml' });
