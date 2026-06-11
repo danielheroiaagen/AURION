@@ -80,7 +80,6 @@
           <h2>Reserva una demostración gratuita</h2>
           <p>Te enseñamos AURION funcionando con un caso real de tu sector en 15 minutos. Sin compromiso.</p>
           <div class="cta-row" style="justify-content:center">
-            <!-- COMPLETAR: enlaces de contacto reales de Daniel -->
             <a href="mailto:danielgonzalezjunco@gmail.com?subject=Quiero%20una%20demo%20de%20AURION" class="btn">Pedir demo por email</a>
             <a href="#" class="btn ghost" data-wa>Pedir demo por WhatsApp</a>
           </div>
@@ -91,7 +90,7 @@
 
   <footer>
     <div class="wrap foot">
-      <div>© <span id="year"></span> AURION · <span class="placeholder-inline">[COMPLETAR: titular / razón social]</span></div>
+      <div>© <span id="year"></span> AURION · Daniel González Junco</div>
       <div class="foot-links">
         <a href="/privacidad.html">Privacidad</a>
         <a href="/aviso-legal.html">Aviso legal</a>
@@ -118,8 +117,8 @@
     document.getElementById('cookie-reject').onclick = function () {
       localStorage.setItem('aurion.cookies', 'rejected'); cookie.classList.add('hidden');
     };
-    // WhatsApp CTA — COMPLETAR con el número real (formato internacional sin +).
-    var WA = '34000000000';
+    // WhatsApp comercial (formato internacional sin +).
+    var WA = '34651865093';
     var wa = document.querySelector('[data-wa]');
     if (wa) wa.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola, quiero una demo de AURION');
   </script>
