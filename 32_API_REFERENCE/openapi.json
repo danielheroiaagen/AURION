@@ -1057,7 +1057,9 @@
             "type": "string",
             "enum": [
               "calendar.update",
-              "ticket.create"
+              "ticket.create",
+              "email.send",
+              "whatsapp.send"
             ]
           },
           "voice_session_id": {

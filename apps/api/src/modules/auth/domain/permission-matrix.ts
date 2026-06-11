@@ -35,6 +35,8 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'metrics:read',
     'tool:execute:calendar.update',
     'tool:execute:ticket.create',
+    'tool:execute:email.send',
+    'tool:execute:whatsapp.send',
     'audit:read',
     'billing:change',
     'integration:credentials.update',
@@ -84,6 +86,8 @@ const MATRIX: Record<PolicySubject, ReadonlySet<Permission>> = {
     'action:read',
     'tool:execute:calendar.update',
     'tool:execute:ticket.create',
+    'tool:execute:email.send',
+    'tool:execute:whatsapp.send',
   ]),
 
   // Internal system jobs: session ingestion/cleanup only (ADR-013).

@@ -72,6 +72,10 @@ services:
     environment:
       PORT: '8090'
       HERMES_RECEIVER_SECRET: ${HERMES_DISPATCH_SECRET:?set HERMES_DISPATCH_SECRET}
+      # Real connectors as n8n workflows (ADR-030); stub stays the default.
+      CONNECTOR_MODE: ${CONNECTOR_MODE:-stub}
+      N8N_WEBHOOK_BASE: ${N8N_WEBHOOK_BASE:-}
+      N8N_SECRET: ${N8N_SECRET:-}
 
   voice-gateway:
     build:
