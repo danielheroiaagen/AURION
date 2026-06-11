@@ -30,8 +30,26 @@ export interface TwilioBridgeOptions {
   readonly mp3ToUlaw?: ((mp3: Buffer) => Promise<Buffer>) | null;
   /** Cost guard (ADR-034); the TwiML door consults it, the bridge accounts. */
   readonly capacity?: CallCapacity;
+  /** Per-tenant identities keyed by client key (ADR-035); a matching key
+   * selects that tenant's API client, greeting and language. Absent or no
+   * match → the single-tenant default below. */
+  readonly routes?: ReadonlyMap<string, CallIdentity>;
+  /** Dialed-number (digits only) → client key, for the /twiml resolver. */
+  readonly phoneToKey?: ReadonlyMap<string, string>;
   readonly telephony: TelephonyConfig;
   readonly log?: (message: string) => void;
+}
+
+/** Digits-only form so +34 91…, 0034 91… and 91… all compare equal. */
+export function phoneDigits(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+/** What a call needs to belong to the right tenant (ADR-035). */
+export interface CallIdentity {
+  readonly api: AurionApiPort;
+  readonly greeting: string;
+  readonly lang: string;
 }
 
 const APOLOGY = 'Disculpa, ha habido un problema técnico. ¿Puedes repetirlo?';
@@ -55,9 +73,15 @@ function normalizeForEcho(text: string): string {
 
 export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions): void {
   const log = options.log ?? ((message: string) => process.stdout.write(`${message}\n`));
-  // The phone line's language pins the brain's reply language (a caller
-  // greeted in Portuguese once — never again).
-  const engine = new ConversationEngine(options.api, options.brain, options.telephony.lang);
+  // Identity is resolved at `start` from the call's key (ADR-035); until
+  // then it is the single-tenant default. The phone line's language pins
+  // the brain's reply language (a caller greeted in Portuguese once).
+  let identity: CallIdentity = {
+    api: options.api,
+    greeting: options.telephony.greeting,
+    lang: options.telephony.lang,
+  };
+  let engine: ConversationEngine | null = null;
   let streamSid: string | null = null;
   let stream: UtteranceStream | null = null;
   let endedGracefully = false;
@@ -115,7 +139,7 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
 
   const say = async (text: string): Promise<void> => {
     lastSpoken = text;
-    const isGreeting = text === options.telephony.greeting;
+    const isGreeting = text === identity.greeting;
     const cached = isGreeting ? GREETING_CACHE.get(options.synthesizer) : undefined;
     if (cached && cached.text === text) {
       sendFrames(cached.ulaw);
@@ -152,7 +176,7 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
         // tells the caller honestly that the request awaits approval
         // (ADR-013) — the brain's words are the phone UI.
         const brainStart = Date.now();
-        const result = await engine.userTurn(text);
+        const result = await engine!.userTurn(text);
         const brainMs = Date.now() - brainStart;
         const ttsStart = Date.now();
         await say(result.reply);
@@ -177,11 +201,17 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
         switch (event.type) {
           case 'start': {
             // Same no-unauthenticated-mode rule as /ws: the TwiML must
-            // carry <Parameter name="key"> matching a configured key.
-            if (!event.key || !options.clientKeys.includes(event.key)) {
+            // carry <Parameter name="key"> matching a configured key —
+            // a per-tenant route key (ADR-035) or the single-tenant key.
+            const route = event.key ? options.routes?.get(event.key) : undefined;
+            if (!event.key || (!route && !options.clientKeys.includes(event.key))) {
               socket.close(4401, 'Missing or invalid client key.');
               return;
             }
+            if (route) {
+              identity = route;
+            }
+            engine = new ConversationEngine(identity.api, options.brain, identity.lang);
             streamSid = event.streamSid;
             if (options.capacity && !counted) {
               counted = true;
@@ -219,9 +249,9 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
                   socket.close(1011, 'Transcription stream failed.');
                 },
               },
-              options.telephony.lang,
+              identity.lang,
             );
-            await say(options.telephony.greeting);
+            await say(identity.greeting);
             break;
           }
           case 'media': {
@@ -229,7 +259,7 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
             break;
           }
           case 'stop': {
-            if (engine.isStarted && !engine.isClosed) {
+            if (engine && engine.isStarted && !engine.isClosed) {
               endedGracefully = true;
               await engine.end('caller_hangup');
             }
@@ -258,7 +288,7 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
     }
     // An abrupt drop with a live session is recorded as `failed` —
     // silence is never an outcome (ADR-018), by phone either.
-    if (engine.isStarted && !engine.isClosed && !endedGracefully) {
+    if (engine && engine.isStarted && !engine.isClosed && !endedGracefully) {
       void engine.abort('connection_dropped');
     }
   });

@@ -105,6 +105,7 @@ describe('the TwiML door refuses over-capacity calls (ADR-034)', () => {
           sttModel: '',
           maxConcurrentCalls: 1,
           maxCallsPerDay: 200,
+          routes: [],
         },
       },
       log: () => undefined,
