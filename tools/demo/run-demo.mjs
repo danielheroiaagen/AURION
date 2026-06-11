@@ -54,7 +54,10 @@ const compose = (args) =>
   spawnSync('docker', ['compose', '--profile', 'full', ...args], { stdio: 'inherit', env: runEnv });
 
 /** Joins path segments with each one URI-encoded: a segment can never add
- * slashes, query strings, or dots that change which endpoint is hit. */
+ * slashes, query strings, or dots that change which endpoint is hit.
+ * Non-2xx responses THROW: a demo that swallows failures lies about the
+ * state it claims to have seeded (found by review — the calendar reject
+ * was 403ing silently while the script printed success). */
 async function api(segments, { method = 'GET', token, body } = {}) {
   const path = segments.map((segment) => encodeURIComponent(segment)).join('/');
   const response = await fetch(`${API}/${path}`, {
@@ -65,7 +68,11 @@ async function api(segments, { method = 'GET', token, body } = {}) {
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  return { status: response.status, body: await response.json().catch(() => null) };
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`${method} /${path} responded ${response.status}: ${JSON.stringify(payload)}`);
+  }
+  return { status: response.status, body: payload };
 }
 
 async function waitForApi() {
@@ -187,7 +194,9 @@ async function main() {
 
   const rejectedId = await conversation('demo-call-2', 'Quiero cambiar mi cita del jueves');
   if (!rejectedId) throw new Error('demo-call-2 did not yield a valid action id');
-  await api(['actions', rejectedId, 'reject'], { method: 'POST', token: supervisorToken });
+  // calendar.update decisions need tool:execute:calendar.update, which the
+  // matrix grants to tenant_admin only — the supervisor reject was a 403.
+  await api(['actions', rejectedId, 'reject'], { method: 'POST', token: adminToken });
 
   await conversation('demo-call-3', 'Necesito un ticket para una factura duplicada');
   console.log('  ✓ live workflow seeded: 1 executed (real dispatch), 1 rejected, 1 awaiting approval');
