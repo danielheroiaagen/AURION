@@ -13,6 +13,7 @@ import type {
 import { SpeechSynthesisError } from './openai-speech.js';
 import { TranscriptionError } from './openai-transcriber.js';
 import { handleTwilioCall, type TwilioBridgeOptions } from './twilio-bridge.js';
+import { buildTwiml, validateTwilioSignature } from './twiml.js';
 import {
   parseClientEvent,
   ProtocolError,
@@ -191,7 +192,50 @@ export function startWsServer(options: WsServerOptions): Server {
     handleTwilioCall(socket, { ...options.twilio!, log });
   });
 
-  const httpServer = createServer((_request, response) => {
+  const httpServer = createServer((request, response) => {
+    const pathname = new URL(request.url ?? '/', 'http://gateway').pathname;
+    // The phone number's front door (ADR-028): TwiML carrying the client
+    // key, handed ONLY to requests Twilio signed.
+    if (pathname === '/twiml' && options.twilio) {
+      if (request.method !== 'POST') {
+        response.writeHead(405, { 'content-type': 'text/plain' });
+        response.end('POST only.');
+        return;
+      }
+      const chunks: Buffer[] = [];
+      let size = 0;
+      request.on('data', (chunk: Buffer) => {
+        size += chunk.length;
+        if (size > 16_384) {
+          request.destroy();
+          return;
+        }
+        chunks.push(chunk);
+      });
+      request.on('end', () => {
+        const telephony = options.twilio!.telephony;
+        const params = Object.fromEntries(
+          new URLSearchParams(Buffer.concat(chunks).toString('utf8')),
+        );
+        const signature = request.headers['x-twilio-signature'];
+        if (
+          typeof signature !== 'string' ||
+          !validateTwilioSignature(
+            telephony.twilioAuthToken,
+            `${telephony.publicUrl}/twiml`,
+            params,
+            signature,
+          )
+        ) {
+          response.writeHead(403, { 'content-type': 'text/plain' });
+          response.end('Invalid Twilio signature.');
+          return;
+        }
+        response.writeHead(200, { 'content-type': 'text/xml' });
+        response.end(buildTwiml(telephony.publicUrl, options.clientKeys[0]));
+      });
+      return;
+    }
     response.writeHead(426, { 'content-type': 'text/plain' });
     response.end('WebSocket only.');
   });

@@ -99,6 +99,13 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-028 signed TwiML endpoint + go-live edge: `POST /twiml` on the
+  gateway returns the phone number's connect TwiML ONLY for requests
+  carrying a valid `X-Twilio-Signature` (HMAC-SHA1 over the pinned
+  `TELEPHONY_PUBLIC_URL`, constant-time compare) — the client key is
+  never served to anyone but Twilio. Caddyfile parametrized with
+  `CADDY_DOMAIN` (automatic TLS on the VPS) and routes `/twilio` +
+  `/twiml` to the gateway.
 - Design tokens v1 "deep ocean" (`20_DESIGN_SYSTEM/design-tokens.md`,
   implemented): one palette/type/interaction language for dashboard and
   widget, CSS-only (no class renames, no new dependencies), visible

@@ -38,6 +38,10 @@ export interface TelephonyConfig {
   readonly greeting: string;
   readonly lang: string;
   readonly silenceMs: number;
+  /** Validates X-Twilio-Signature on /twiml (ADR-028). */
+  readonly twilioAuthToken: string;
+  /** The https origin Twilio reaches us at — pinned, never derived from headers. */
+  readonly publicUrl: string;
 }
 
 export interface GatewayConfig {
@@ -174,12 +178,24 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
         'TELEPHONY_MODE=twilio requires STT_MODE=openai and TTS_MODE=openai (ADR-027).',
       );
     }
+    const twilioAuthToken = env.TWILIO_AUTH_TOKEN;
+    if (!twilioAuthToken || twilioAuthToken.length < 16) {
+      throw new Error('TWILIO_AUTH_TOKEN is required in twilio mode (ADR-028).');
+    }
+    const publicUrl = (env.TELEPHONY_PUBLIC_URL ?? '').trim();
+    if (!/^https:\/\//.test(publicUrl)) {
+      throw new Error(
+        'TELEPHONY_PUBLIC_URL is required in twilio mode and must be https (ADR-028).',
+      );
+    }
     telephony = {
       greeting:
         (env.PHONE_GREETING ?? '').trim() ||
         'Hola, soy el asistente virtual. ¿En qué puedo ayudarte?',
       lang: (env.PHONE_LANG ?? 'es-ES').trim(),
       silenceMs: parsePositiveInt(env.TELEPHONY_SILENCE_MS, 600),
+      twilioAuthToken,
+      publicUrl: publicUrl.replace(/\/+$/, ''),
     };
   }
 
