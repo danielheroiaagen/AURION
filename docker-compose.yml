@@ -96,6 +96,9 @@ services:
       TELEPHONY_MODE: ${TELEPHONY_MODE:-off}
       PHONE_GREETING: ${PHONE_GREETING:-}
       PHONE_LANG: ${PHONE_LANG:-es-ES}
+      # Signed TwiML front door (ADR-028).
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TELEPHONY_PUBLIC_URL: ${TELEPHONY_PUBLIC_URL:-}
     ports:
       - '${GATEWAY_HOST_PORT:-8080}:8080'
     depends_on:
@@ -111,6 +114,9 @@ services:
   edge:
     image: caddy:2-alpine
     profiles: ['full']
+    environment:
+      # Real domain on the VPS (TLS via Let's Encrypt); :80 locally/CI.
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-:80}
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

@@ -1,11 +1,20 @@
-# Single-origin edge (ADR-020): / → dashboard, /api → API, /ws → gateway.
-# On the VPS, replace :80 with the real domain and Caddy provisions TLS
-# automatically (see 10_DEPLOYMENT/vps-deploy-runbook.md).
-:80 {
+# Single-origin edge (ADR-020): / → dashboard, /api → API, /ws + /twilio +
+# /twiml → gateway. CADDY_DOMAIN defaults to :80 (local/CI); on the VPS set
+# CADDY_DOMAIN=<your domain> in .env and Caddy provisions TLS automatically
+# (see 10_DEPLOYMENT/vps-deploy-runbook.md).
+{$CADDY_DOMAIN::80} {
 	handle /api/* {
 		reverse_proxy api:3000
 	}
 	handle /ws* {
+		reverse_proxy voice-gateway:8080
+	}
+	# Telephony (ADR-027/ADR-028): Twilio's media WebSocket and the signed
+	# TwiML front door.
+	handle /twilio* {
+		reverse_proxy voice-gateway:8080
+	}
+	handle /twiml {
 		reverse_proxy voice-gateway:8080
 	}
 	handle {

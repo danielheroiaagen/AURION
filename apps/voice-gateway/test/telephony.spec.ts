@@ -30,16 +30,24 @@ const VOICE_ENV = {
   TTS_API_KEY: 'sk-testtesttest',
 };
 
-describe('telephony configuration (fail closed, ADR-027)', () => {
+const PHONE_ENV = {
+  ...VOICE_ENV,
+  TELEPHONY_MODE: 'twilio',
+  TWILIO_AUTH_TOKEN: 'twilio-token-testtesttest',
+  TELEPHONY_PUBLIC_URL: 'https://aurion.test',
+};
+
+describe('telephony configuration (fail closed, ADR-027/ADR-028)', () => {
   it('defaults to off and loads twilio mode with defaults', () => {
     expect(loadGatewayConfig(VALID_ENV).telephonyMode).toBe('off');
     expect(loadGatewayConfig(VALID_ENV).telephony).toBeNull();
 
-    const config = loadGatewayConfig({ ...VOICE_ENV, TELEPHONY_MODE: 'twilio' });
+    const config = loadGatewayConfig(PHONE_ENV);
     expect(config.telephonyMode).toBe('twilio');
     expect(config.telephony?.lang).toBe('es-ES');
     expect(config.telephony?.silenceMs).toBe(600);
     expect(config.telephony?.greeting.length).toBeGreaterThan(0);
+    expect(config.telephony?.publicUrl).toBe('https://aurion.test');
   });
 
   it('refuses to answer phones without BOTH ears and voice', () => {
@@ -57,6 +65,15 @@ describe('telephony configuration (fail closed, ADR-027)', () => {
     expect(() => loadGatewayConfig({ ...VOICE_ENV, TELEPHONY_MODE: 'sip' })).toThrow(
       /TELEPHONY_MODE/,
     );
+  });
+
+  it('refuses twilio mode without the signature token and a pinned https origin (ADR-028)', () => {
+    expect(() =>
+      loadGatewayConfig({ ...PHONE_ENV, TWILIO_AUTH_TOKEN: undefined as never }),
+    ).toThrow(/TWILIO_AUTH_TOKEN/);
+    expect(() =>
+      loadGatewayConfig({ ...PHONE_ENV, TELEPHONY_PUBLIC_URL: 'http://insecure.test' }),
+    ).toThrow(/TELEPHONY_PUBLIC_URL/);
   });
 });
 
@@ -352,7 +369,13 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
         synthesizer: {
           synthesize: async () => ({ audio: PCM_REPLY, mimeType: 'audio/pcm;rate=24000' }),
         },
-        telephony: { greeting: 'Hola, soy AURION.', lang: 'es-ES', silenceMs: 600 },
+        telephony: {
+          greeting: 'Hola, soy AURION.',
+          lang: 'es-ES',
+          silenceMs: 600,
+          twilioAuthToken: 'twilio-token-testtesttest',
+          publicUrl: 'https://aurion.test',
+        },
       },
       log: () => undefined,
     });
@@ -434,6 +457,71 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
       ),
     );
     expect(stt.closed()).toBe(true);
+  });
+
+  it('serves signed TwiML on /twiml and refuses everything else (ADR-028)', async () => {
+    const { createHmac } = await import('node:crypto');
+    const stt = fakeStreamingTranscriber();
+    const port = boot(stt.port);
+    const base = `http://127.0.0.1:${port}`;
+    const publicUrl = 'https://aurion.test/twiml';
+    const body = new URLSearchParams({ CallSid: 'CA1', From: '+34600000000' });
+    const params = Object.fromEntries(body);
+    const payload =
+      publicUrl +
+      Object.keys(params)
+        .sort()
+        .map((name) => name + params[name])
+        .join('');
+    const signature = createHmac('sha1', 'twilio-token-testtesttest')
+      .update(payload)
+      .digest('base64');
+
+    const signed = await fetch(`${base}/twiml`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'x-twilio-signature': signature,
+      },
+      body: body.toString(),
+    });
+    expect(signed.status).toBe(200);
+    const twiml = await signed.text();
+    expect(twiml).toContain('wss://aurion.test/twilio');
+    expect(twiml).toContain(`value="${CLIENT_KEY}"`);
+
+    const forged = await fetch(`${base}/twiml`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'x-twilio-signature': 'AAAA',
+      },
+      body: body.toString(),
+    });
+    expect(forged.status).toBe(403);
+
+    const unsigned = await fetch(`${base}/twiml`, { method: 'POST', body: body.toString() });
+    expect(unsigned.status).toBe(403);
+
+    const got = await fetch(`${base}/twiml`);
+    expect(got.status).toBe(405);
+  });
+
+  it('does not serve /twiml when telephony is off', async () => {
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: null,
+      log: () => undefined,
+    });
+    const port = (server.address() as { port: number }).port;
+    const response = await fetch(`http://127.0.0.1:${port}/twiml`, { method: 'POST', body: '' });
+    expect(response.status).toBe(426);
   });
 
   it('refuses /twilio upgrades when telephony is off', async () => {
