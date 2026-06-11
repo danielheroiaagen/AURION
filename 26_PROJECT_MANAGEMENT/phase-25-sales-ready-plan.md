@@ -39,11 +39,18 @@ this checklist.
 
 ## Acceptance criteria
 
-- [ ] A call beyond the concurrent or daily cap hears the busy message
+- [x] A call beyond the concurrent or daily cap hears the busy message
       and costs zero provider spend (verified by test and logs).
-- [ ] Production greeting discloses the AI.
-- [ ] All suites green in CI.
+- [x] Production greeting discloses the AI (deployed 2026-06-11; cached
+      in the operator voice).
+- [x] All suites green in CI (PR #49, `ba131e9`; 320 contract, 87
+      gateway).
 
-## Closure evidence
+## Closure evidence (code side)
 
-To be completed at phase close.
+PR #49 squash-merged as `ba131e9` (2026-06-11), all checks green;
+deployed the same day with TELEPHONY_MAX_CONCURRENT=4,
+TELEPHONY_MAX_CALLS_PER_DAY=200 and the AI-disclosure greeting (warmed
+into the greeting cache). The phase stays open on the OPERATOR checklist
+above (DKIM/DMARC, DNS record, Spanish number, landing) — those gate the
+cold-ads go signal; demo-driven selling is GO since today.
