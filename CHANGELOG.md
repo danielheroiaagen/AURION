@@ -89,6 +89,16 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   finished audio (zero deps) and demotes the browser's `speechSynthesis`
   to fallback; the HeyGen avatar is deferred to its own media-channel
   phase on this seam.
+- ADR-027 telephony bridge (`TELEPHONY_MODE=twilio`): AURION answers real
+  phone calls. A second `/twilio` WS path speaks Twilio Media Streams
+  (G.711 μ-law 8 kHz, key-gated via TwiML `<Parameter>`); a new
+  `StreamingTranscriptionPort` adapter feeds the OpenAI Realtime API
+  (`audio/pcmu` as-is, server VAD) and replies are voiced through the
+  ADR-026 synthesizer with a dependency-free PCM→μ-law transcode.
+  Barge-in v1 (`clear` on caller speech), greeting on answer, spoken
+  apology on a failed turn. SAME conversation engine and approval-gated
+  actions — the bridge changes transport, never authority. Fail-closed:
+  twilio mode refuses to boot without STT and TTS both in openai mode.
 - Design tokens v1 "deep ocean" (`20_DESIGN_SYSTEM/design-tokens.md`,
   implemented): one palette/type/interaction language for dashboard and
   widget, CSS-only (no class renames, no new dependencies), visible

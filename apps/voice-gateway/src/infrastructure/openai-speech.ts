@@ -16,10 +16,14 @@ export class SpeechSynthesisError extends Error {
   }
 }
 
+export type SpeechFormat = 'mp3' | 'pcm';
+
 export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
   constructor(
     private readonly config: TtsConfig,
     private readonly fetchImpl: typeof fetch = fetch,
+    /** `pcm` (16-bit LE, 24 kHz) feeds the telephony transcode (ADR-027). */
+    private readonly format: SpeechFormat = 'mp3',
   ) {}
 
   async synthesize(text: string): Promise<SynthesizedSpeech> {
@@ -43,7 +47,7 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
           model: this.config.model,
           voice: this.config.voice,
           input,
-          response_format: 'mp3',
+          response_format: this.format,
         }),
         signal: controller.signal,
       });
@@ -68,6 +72,6 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
     if (audio.length === 0) {
       throw new SpeechSynthesisError('Speech endpoint returned no audio.');
     }
-    return { audio, mimeType: 'audio/mpeg' };
+    return { audio, mimeType: this.format === 'pcm' ? 'audio/pcm;rate=24000' : 'audio/mpeg' };
   }
 }

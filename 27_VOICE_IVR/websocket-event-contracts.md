@@ -5,7 +5,7 @@ folder: 27_VOICE_IVR
 owner: Daniel Gonzalez Junco
 status: active
 created_at: 2026-06-10
-related: ADR-009, ADR-013, ADR-018, ADR-025, ADR-026
+related: ADR-009, ADR-013, ADR-018, ADR-025, ADR-026, ADR-027
 ---
 
 # Voice gateway WebSocket event contracts
@@ -57,6 +57,29 @@ One connection = at most one conversation.
   duplicate side effects.
 - The gateway closes sessions it cannot continue as `failed` — silence is
   never an outcome.
+
+## Telephony transport (ADR-027)
+
+`GET /twilio` — same port, second upgrade path, speaking **Twilio
+Media Streams** instead of this JSON contract. The TwiML for the phone
+number must carry the client key as a custom parameter:
+
+```xml
+<Response>
+  <Connect>
+    <Stream url="wss://<gateway-host>/twilio">
+      <Parameter name="key" value="<a VOICE_GATEWAY_CLIENT_KEYS entry>" />
+    </Stream>
+  </Connect>
+</Response>
+```
+
+Calls whose `start` frame lacks a configured key are closed (`4401`)
+before any audio is processed. A phone call runs the SAME conversation
+engine and lifecycle as `/ws` (`external_session_id = tw-<callSid>`,
+turn-keyed idempotency, approval-gated actions, `completed` on hangup /
+`failed` on drop); only the transport differs. The path exists only when
+`TELEPHONY_MODE=twilio`; otherwise `/twilio` upgrades are refused.
 
 ## Extension points (additive, not breaking)
 

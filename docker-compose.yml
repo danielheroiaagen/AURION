@@ -92,6 +92,10 @@ services:
       TTS_API_KEY: ${TTS_API_KEY:-}
       TTS_MODEL: ${TTS_MODEL:-gpt-4o-mini-tts}
       TTS_VOICE: ${TTS_VOICE:-alloy}
+      # Telephony bridge (ADR-027). Requires STT and TTS in openai mode.
+      TELEPHONY_MODE: ${TELEPHONY_MODE:-off}
+      PHONE_GREETING: ${PHONE_GREETING:-}
+      PHONE_LANG: ${PHONE_LANG:-es-ES}
     ports:
       - '${GATEWAY_HOST_PORT:-8080}:8080'
     depends_on:
