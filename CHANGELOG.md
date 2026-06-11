@@ -99,6 +99,11 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-034 sales-ready guards: `CallCapacity` cost guard for paid
+  traffic — concurrent and daily call caps enforced at the TwiML front
+  door with a language-aware busy message spoken by Twilio's own TTS
+  (over-limit calls never touch billed providers); bridge accounting and
+  logged refusals. AI-disclosure greeting deployed alongside.
 - ADR-033 self-hosted IdP: Keycloak as a compose service (`--profile
   idp`, /auth behind the edge, schema in the aurion postgres) closes the
   go-live hs256 exception. Realm bootstrap is a reviewable kcadm script

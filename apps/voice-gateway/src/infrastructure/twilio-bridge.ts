@@ -9,6 +9,7 @@ import type {
   UtteranceStream,
 } from '../application/ports.js';
 import type { TelephonyConfig } from '../config.js';
+import type { CallCapacity } from './call-capacity.js';
 import { pcm16ToUlaw8k, ulawFrames } from './audio.js';
 import { parseTwilioEvent, TwilioProtocolError } from './twilio-protocol.js';
 
@@ -27,6 +28,8 @@ export interface TwilioBridgeOptions {
   readonly synthesizer: SpeechSynthesisPort;
   /** MP3 → μ-law decode for non-PCM synthesizers (ADR-029, ffmpeg-backed). */
   readonly mp3ToUlaw?: ((mp3: Buffer) => Promise<Buffer>) | null;
+  /** Cost guard (ADR-034); the TwiML door consults it, the bridge accounts. */
+  readonly capacity?: CallCapacity;
   readonly telephony: TelephonyConfig;
   readonly log?: (message: string) => void;
 }
@@ -58,6 +61,7 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
   let streamSid: string | null = null;
   let stream: UtteranceStream | null = null;
   let endedGracefully = false;
+  let counted = false;
   // Turns are serialized: a caller who talks over a pending turn queues,
   // preserving the engine's turn-keyed idempotency.
   let turnChain: Promise<void> = Promise.resolve();
@@ -179,6 +183,10 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
               return;
             }
             streamSid = event.streamSid;
+            if (options.capacity && !counted) {
+              counted = true;
+              options.capacity.begin();
+            }
             await engine.start(`tw-${event.callSid}`);
             stream = await options.transcriber.open(
               {
@@ -245,6 +253,9 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
 
   socket.on('close', () => {
     stream?.close();
+    if (counted) {
+      options.capacity?.end();
+    }
     // An abrupt drop with a live session is recorded as `failed` —
     // silence is never an outcome (ADR-018), by phone either.
     if (engine.isStarted && !engine.isClosed && !endedGracefully) {
