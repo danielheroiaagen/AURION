@@ -24,8 +24,9 @@ class LlmBrainTests(unittest.TestCase):
         brain = read(SRC / "infrastructure" / "llm-brain.ts")
         self.assertIn("'ticket.create'", brain.replace('"ticket.create"', "'ticket.create'"))
         self.assertIn("calendar.update", brain)
-        self.assertIn("KNOWN_TOOLS", brain)
-        # Unknown tools are skipped, never executed.
+        # Only catalog tool names map to intents (gpt-5-era wire form included);
+        # unknown tools are skipped, never executed.
+        self.assertIn("ACTION_TYPE_BY_TOOL_NAME", brain)
         self.assertIn("continue", brain)
 
     def test_failures_never_fabricate_replies(self):
