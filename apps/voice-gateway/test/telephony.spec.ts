@@ -251,6 +251,23 @@ describe('OpenAiRealtimeTranscriber (ws client, audio/pcmu, ADR-027)', () => {
     provider.close();
   });
 
+  it('anchors the transcription language with the greeting as context bias (ADR-027 amendment)', async () => {
+    const provider = await startFakeProvider();
+    const transcriber = new OpenAiRealtimeTranscriber(
+      { ...STT_CONFIG, apiUrl: `http://127.0.0.1:${provider.port}` },
+      600,
+      'Hola, soy el asistente de AURION. ¿En qué puedo ayudarte?',
+    );
+    await transcriber.open({ onUtterance: vi.fn(), onError: vi.fn() }, 'es-ES');
+    await vi.waitFor(() => expect(provider.received.length).toBeGreaterThan(0));
+    const transcription = (provider.received[0] as {
+      session: { audio: { input: { transcription: { language: string; prompt: string } } } };
+    }).session.audio.input.transcription;
+    expect(transcription.language).toBe('es');
+    expect(transcription.prompt).toContain('Hola, soy el asistente');
+    provider.close();
+  });
+
   it('rejects when the provider is unreachable — a deaf phone line fails loudly', async () => {
     const transcriber = new OpenAiRealtimeTranscriber(
       { ...STT_CONFIG, apiUrl: 'http://127.0.0.1:1', timeoutMs: 500 },

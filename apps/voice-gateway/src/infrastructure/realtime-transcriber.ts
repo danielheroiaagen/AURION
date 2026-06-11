@@ -29,6 +29,10 @@ export class OpenAiRealtimeTranscriber implements StreamingTranscriptionPort {
   constructor(
     private readonly config: SttConfig,
     private readonly silenceMs: number,
+    /** Context bias, e.g. the phone greeting: anchors the transcription
+     * language far harder than the optional `language` hint alone (a
+     * Spanish caller was transcribed as English on a live call). */
+    private readonly biasPrompt: string | null = null,
     private readonly wsFactory: WsFactory = (url, headers) => new WebSocket(url, { headers }),
   ) {}
 
@@ -65,6 +69,7 @@ export class OpenAiRealtimeTranscriber implements StreamingTranscriptionPort {
                   transcription: {
                     model: this.config.model,
                     ...(lang ? { language: lang.split('-')[0].toLowerCase() } : {}),
+                    ...(this.biasPrompt ? { prompt: this.biasPrompt } : {}),
                   },
                   turn_detection: {
                     type: 'server_vad',

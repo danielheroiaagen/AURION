@@ -117,6 +117,18 @@ describe('LlmBrain', () => {
     expect(system).toContain('expected caller language is es-ES');
     expect(system).toContain('NEVER switch languages');
     expect(system).toContain('one or two short sentences');
+    // Recency lock: the LAST message re-pins the language every turn.
+    const last = body.messages.at(-1) as { role: string; content: string };
+    expect(last.role).toBe('system');
+    expect(last.content).toContain('CRITICAL');
+    expect(last.content).toContain('es-ES');
+  });
+
+  it('adds no trailing language lock when the channel language is unknown', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(completion({ content: 'ok' }));
+    await new LlmBrain(CONFIG, fetchImpl).respond(CONTEXT);
+    const body = JSON.parse(fetchImpl.mock.calls[0][1].body as string);
+    expect((body.messages.at(-1) as { role: string }).role).toBe('user');
   });
 
   it('maps a catalog tool call to a ToolIntent (the approval path is untouched)', async () => {
