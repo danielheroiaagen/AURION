@@ -138,6 +138,20 @@ describe('ConversationClient', () => {
     expect(callbacks.onEvent.mock.calls[1][0]).toEqual({ type: 'audio.transcript', text: 'hola' });
   });
 
+  it('receives the voiced reply after the text (ADR-026)', async () => {
+    const { socket, callbacks } = await connected();
+    socket.receive({ type: 'session.started', session_id: 'vs-1', tts_enabled: true });
+    socket.receive({ type: 'turn.agent', text: 'puedo ayudarte' });
+    socket.receive({ type: 'audio.agent', audio: 'bXAz', mime_type: 'audio/mpeg' });
+    expect(callbacks.onEvent).toHaveBeenCalledTimes(3);
+    expect(callbacks.onEvent.mock.calls[0][0].tts_enabled).toBe(true);
+    expect(callbacks.onEvent.mock.calls[2][0]).toEqual({
+      type: 'audio.agent',
+      audio: 'bXAz',
+      mime_type: 'audio/mpeg',
+    });
+  });
+
   it('ending the call spends the resume id', async () => {
     const { client } = await connected();
     const id = resumableSessionId();

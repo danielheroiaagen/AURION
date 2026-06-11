@@ -80,6 +80,15 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   sees the provider key; Chrome's failing online recognizer is demoted to
   fallback. This removes the root cause of the broken mic that phase 15
   made diagnosable.
+- ADR-026 server-side text-to-speech (`TTS_MODE=openai`): the gateway
+  voices every agent reply through a `SpeechSynthesisPort` (OpenAI
+  `/audio/speech` via plain fetch — runtime deps stay `ws`-only); new
+  additive WS event `audio.agent` + `tts_enabled` flag, stable error code
+  `tts_failed`. Text is the source of truth: `turn.agent` is always
+  delivered before (and despite) any synthesis failure. The widget plays
+  finished audio (zero deps) and demotes the browser's `speechSynthesis`
+  to fallback; the HeyGen avatar is deferred to its own media-channel
+  phase on this seam.
 - Design tokens v1 "deep ocean" (`20_DESIGN_SYSTEM/design-tokens.md`,
   implemented): one palette/type/interaction language for dashboard and
   widget, CSS-only (no class renames, no new dependencies), visible

@@ -22,9 +22,10 @@ export type ClientEvent =
   | { type: 'session.end'; outcome?: string };
 
 export type ServerEvent =
-  | { type: 'session.started'; session_id: string; stt_enabled: boolean }
+  | { type: 'session.started'; session_id: string; stt_enabled: boolean; tts_enabled: boolean }
   | { type: 'turn.agent'; text: string }
   | { type: 'audio.transcript'; text: string }
+  | { type: 'audio.agent'; audio: string; mime_type: string }
   | {
       type: 'action.requested';
       action_id: string;

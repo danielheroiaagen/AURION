@@ -41,6 +41,19 @@ export interface TranscriptionPort {
   transcribe(input: UtteranceAudio): Promise<string>;
 }
 
+// --- Text to speech ----------------------------------------------------------
+
+export interface SynthesizedSpeech {
+  readonly audio: Buffer;
+  readonly mimeType: string;
+}
+
+export interface SpeechSynthesisPort {
+  /** Spoken audio for one agent reply. Audio is an enhancement (ADR-026):
+   * the TEXT event is the source of truth and is delivered first. */
+  synthesize(text: string): Promise<SynthesizedSpeech>;
+}
+
 // --- AURION API (system of record) ------------------------------------------
 
 export interface StartedSession {

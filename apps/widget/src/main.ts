@@ -1,4 +1,10 @@
 import { ConversationClient } from './conversation-client';
+import {
+  PLAYBACK_FAILURE_MESSAGES,
+  TTS_ERROR_MESSAGES,
+  playAgentAudio,
+  playbackAvailable,
+} from './player';
 import type { ServerEvent } from './protocol';
 import {
   RECORD_FAILURE_MESSAGES,
@@ -24,6 +30,10 @@ import './styles.css';
  * Mic capture prefers gateway STT (ADR-025): record locally, transcribe
  * server-side. The browser's online recognizer is only the fallback when
  * the gateway reports stt_enabled: false.
+ *
+ * Voice output prefers gateway TTS (ADR-026): the agent's reply arrives as
+ * audio.agent and is just played. The browser's speechSynthesis is only the
+ * fallback when the gateway reports tts_enabled: false.
  */
 const LANG = navigator.language || 'es-ES';
 const root = document.getElementById('aurion-widget')!;
@@ -65,6 +75,7 @@ const status = root.querySelector<HTMLElement>('.aw-status')!;
 
 let client: ConversationClient | null = null;
 let gatewayStt = false;
+let gatewayTts = false;
 let recording: ActiveRecording | null = null;
 
 function line(speaker: 'caller' | 'agent', text: string): void {
@@ -90,6 +101,7 @@ function handleEvent(event: ServerEvent): void {
     case 'session.started':
       status.textContent = 'Connected. The agent is listening.';
       gatewayStt = event.stt_enabled === true && recordingAvailable();
+      gatewayTts = event.tts_enabled === true && playbackAvailable();
       micButton.hidden = !gatewayStt && !speechInputAvailable();
       break;
     case 'audio.transcript':
@@ -103,9 +115,20 @@ function handleEvent(event: ServerEvent): void {
       break;
     case 'turn.agent':
       line('agent', event.text);
-      if (speechOutputAvailable()) {
+      // With gateway TTS the spoken form follows as audio.agent (ADR-026);
+      // speaking locally too would double the voice.
+      if (!gatewayTts && speechOutputAvailable()) {
         speak(event.text, LANG);
       }
+      break;
+    case 'audio.agent':
+      void playAgentAudio(event.audio, event.mime_type).then((result) => {
+        // A lost voice is explained, never silent (ADR-024): the text of
+        // this reply is already on screen.
+        if (!result.ok) {
+          status.textContent = PLAYBACK_FAILURE_MESSAGES[result.reason];
+        }
+      });
       break;
     case 'action.requested':
       // Honesty rule carried to the caller (ADR-013/ADR-024): registered,
@@ -124,7 +147,10 @@ function handleEvent(event: ServerEvent): void {
       client?.disconnect();
       break;
     case 'error':
-      status.textContent = STT_ERROR_MESSAGES[event.code] ?? `Problem: ${event.message}`;
+      status.textContent =
+        STT_ERROR_MESSAGES[event.code] ??
+        TTS_ERROR_MESSAGES[event.code] ??
+        `Problem: ${event.message}`;
       if (event.code === 'stt_disabled') {
         // The gateway cannot listen after all: fall back honestly.
         gatewayStt = false;

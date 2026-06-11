@@ -1,11 +1,12 @@
 /**
- * Voice gateway configuration (ADR-018/ADR-022/ADR-025), read once at
- * startup. Fail closed: the gateway refuses to boot without its API
+ * Voice gateway configuration (ADR-018/ADR-022/ADR-025/ADR-026), read once
+ * at startup. Fail closed: the gateway refuses to boot without its API
  * endpoint, its machine token, at least one client connection key, and a
- * complete configuration for the selected brain and STT modes.
+ * complete configuration for the selected brain, STT, and TTS modes.
  */
 export type BrainMode = 'scripted' | 'llm';
 export type SttMode = 'off' | 'openai';
+export type TtsMode = 'off' | 'openai';
 
 export interface LlmConfig {
   readonly apiUrl: string;
@@ -23,6 +24,15 @@ export interface SttConfig {
   readonly maxAudioBytes: number;
 }
 
+export interface TtsConfig {
+  readonly apiUrl: string;
+  readonly apiKey: string;
+  readonly model: string;
+  readonly voice: string;
+  readonly timeoutMs: number;
+  readonly maxTextChars: number;
+}
+
 export interface GatewayConfig {
   readonly port: number;
   readonly apiUrl: string;
@@ -32,6 +42,8 @@ export interface GatewayConfig {
   readonly llm: LlmConfig | null;
   readonly sttMode: SttMode;
   readonly stt: SttConfig | null;
+  readonly ttsMode: TtsMode;
+  readonly tts: TtsConfig | null;
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -108,9 +120,34 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     stt = {
       apiUrl: sttUrl.replace(/\/+$/, ''),
       apiKey,
-      model: (env.STT_MODEL ?? 'gpt-4o-mini-transcribe').trim(),
+      model: (env.STT_MODEL ?? 'gpt-4o-transcribe').trim(),
       timeoutMs: parsePositiveInt(env.STT_TIMEOUT_MS, 30_000),
       maxAudioBytes: parsePositiveInt(env.STT_MAX_AUDIO_BYTES, 2_000_000),
+    };
+  }
+
+  const ttsMode = (env.TTS_MODE ?? 'off').trim();
+  if (ttsMode !== 'off' && ttsMode !== 'openai') {
+    throw new Error(`TTS_MODE "${ttsMode}" is unknown; supported: off, openai.`);
+  }
+
+  let tts: TtsConfig | null = null;
+  if (ttsMode === 'openai') {
+    const apiKey = env.TTS_API_KEY;
+    if (!apiKey || apiKey.length < 8) {
+      throw new Error('TTS_API_KEY is required in openai TTS mode (ADR-026).');
+    }
+    const ttsUrl = (env.TTS_API_URL ?? 'https://api.openai.com/v1').trim();
+    if (!/^https?:\/\//.test(ttsUrl)) {
+      throw new Error('TTS_API_URL must be an http(s) URL (ADR-026).');
+    }
+    tts = {
+      apiUrl: ttsUrl.replace(/\/+$/, ''),
+      apiKey,
+      model: (env.TTS_MODEL ?? 'gpt-4o-mini-tts').trim(),
+      voice: (env.TTS_VOICE ?? 'alloy').trim(),
+      timeoutMs: parsePositiveInt(env.TTS_TIMEOUT_MS, 30_000),
+      maxTextChars: parsePositiveInt(env.TTS_MAX_TEXT_CHARS, 1_000),
     };
   }
 
@@ -123,5 +160,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     llm,
     sttMode,
     stt,
+    ttsMode,
+    tts,
   };
 }
