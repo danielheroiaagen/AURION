@@ -1,0 +1,454 @@
+import type { Server } from 'node:http';
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { WebSocket, WebSocketServer } from 'ws';
+
+import type {
+  AurionApiPort,
+  StreamingTranscriptionPort,
+  UtteranceStreamHandlers,
+} from '../src/application/ports.js';
+import { loadGatewayConfig } from '../src/config.js';
+import { linearToUlaw, pcm16ToUlaw8k, ulawFrames, ulawToLinear } from '../src/infrastructure/audio.js';
+import { OpenAiRealtimeTranscriber } from '../src/infrastructure/realtime-transcriber.js';
+import { ScriptedBrain } from '../src/infrastructure/scripted-brain.js';
+import { parseTwilioEvent, TwilioProtocolError } from '../src/infrastructure/twilio-protocol.js';
+import { startWsServer } from '../src/infrastructure/ws-server.js';
+
+const VALID_ENV = {
+  AURION_API_URL: 'http://localhost:3000',
+  VOICE_AGENT_TOKEN: 'aaa.bbb.ccc',
+  VOICE_GATEWAY_CLIENT_KEYS: 'k'.repeat(32),
+};
+
+// Deliberately low-entropy fixtures: must never trip the secret scanner.
+const VOICE_ENV = {
+  ...VALID_ENV,
+  STT_MODE: 'openai',
+  STT_API_KEY: 'sk-testtesttest',
+  TTS_MODE: 'openai',
+  TTS_API_KEY: 'sk-testtesttest',
+};
+
+describe('telephony configuration (fail closed, ADR-027)', () => {
+  it('defaults to off and loads twilio mode with defaults', () => {
+    expect(loadGatewayConfig(VALID_ENV).telephonyMode).toBe('off');
+    expect(loadGatewayConfig(VALID_ENV).telephony).toBeNull();
+
+    const config = loadGatewayConfig({ ...VOICE_ENV, TELEPHONY_MODE: 'twilio' });
+    expect(config.telephonyMode).toBe('twilio');
+    expect(config.telephony?.lang).toBe('es-ES');
+    expect(config.telephony?.silenceMs).toBe(600);
+    expect(config.telephony?.greeting.length).toBeGreaterThan(0);
+  });
+
+  it('refuses to answer phones without BOTH ears and voice', () => {
+    expect(() =>
+      loadGatewayConfig({ ...VALID_ENV, TELEPHONY_MODE: 'twilio' }),
+    ).toThrow(/STT_MODE=openai and TTS_MODE=openai/);
+    expect(() =>
+      loadGatewayConfig({
+        ...VALID_ENV,
+        TELEPHONY_MODE: 'twilio',
+        STT_MODE: 'openai',
+        STT_API_KEY: 'sk-testtesttest',
+      }),
+    ).toThrow(/TTS_MODE/);
+    expect(() => loadGatewayConfig({ ...VOICE_ENV, TELEPHONY_MODE: 'sip' })).toThrow(
+      /TELEPHONY_MODE/,
+    );
+  });
+});
+
+describe('μ-law transcode (dependency-free wire audio)', () => {
+  it('encodes silence to 0xFF and survives a round trip within quantization error', () => {
+    expect(linearToUlaw(0)).toBe(0xff);
+    for (const sample of [0, 128, -128, 1000, -1000, 8000, -8000, 30000, -30000]) {
+      const decoded = ulawToLinear(linearToUlaw(sample));
+      // μ-law is logarithmic: tolerance scales with magnitude.
+      expect(Math.abs(decoded - sample)).toBeLessThanOrEqual(Math.max(16, Math.abs(sample) / 16));
+    }
+  });
+
+  it('downsamples 24 kHz PCM16 to one μ-law byte per 3 samples', () => {
+    const pcm = Buffer.alloc(960); // 480 samples of silence
+    const ulaw = pcm16ToUlaw8k(pcm);
+    expect(ulaw.length).toBe(160);
+    expect(ulaw.every((byte) => byte === 0xff)).toBe(true);
+  });
+
+  it('frames wire audio in 160-byte (20 ms) chunks', () => {
+    const frames = ulawFrames(Buffer.alloc(400, 0xff));
+    expect(frames.map((frame) => frame.length)).toEqual([160, 160, 80]);
+  });
+});
+
+describe('Twilio Media Streams frame parsing (fail closed)', () => {
+  it('parses the documented lifecycle frames', () => {
+    expect(parseTwilioEvent(JSON.stringify({ event: 'connected' }))).toEqual({
+      type: 'connected',
+    });
+    expect(
+      parseTwilioEvent(
+        JSON.stringify({
+          event: 'start',
+          start: {
+            streamSid: 'MZ1',
+            callSid: 'CA1',
+            customParameters: { key: 'k'.repeat(32) },
+          },
+        }),
+      ),
+    ).toEqual({ type: 'start', streamSid: 'MZ1', callSid: 'CA1', key: 'k'.repeat(32) });
+    expect(parseTwilioEvent(JSON.stringify({ event: 'media', media: { payload: 'QQ==' } }))).toEqual(
+      { type: 'media', payload: 'QQ==' },
+    );
+    expect(parseTwilioEvent(JSON.stringify({ event: 'stop' }))).toEqual({ type: 'stop' });
+  });
+
+  it('ignores unknown-but-wellformed events, rejects malformed frames', () => {
+    expect(parseTwilioEvent(JSON.stringify({ event: 'mark', mark: { name: 'x' } }))).toEqual({
+      type: 'ignored',
+    });
+    expect(() => parseTwilioEvent('not json')).toThrow(TwilioProtocolError);
+    expect(() => parseTwilioEvent(JSON.stringify({ event: 'start', start: {} }))).toThrow(
+      /streamSid/,
+    );
+    expect(() => parseTwilioEvent(JSON.stringify({ event: 'media', media: {} }))).toThrow(
+      /payload/,
+    );
+  });
+});
+
+// --- Realtime transcription adapter ------------------------------------------
+
+const STT_CONFIG = {
+  apiUrl: 'http://127.0.0.1', // patched per test with the fake provider's port
+  apiKey: 'sk-testtesttest',
+  model: 'gpt-4o-transcribe',
+  timeoutMs: 2_000,
+  maxAudioBytes: 2_000_000,
+};
+
+interface FakeProvider {
+  port: number;
+  received: Record<string, unknown>[];
+  send(event: Record<string, unknown>): void;
+  authorization: string | undefined;
+  close(): void;
+}
+
+function startFakeProvider(): Promise<FakeProvider> {
+  return new Promise((resolve) => {
+    const wss = new WebSocketServer({ port: 0 });
+    const received: Record<string, unknown>[] = [];
+    let client: WebSocket | null = null;
+    let authorization: string | undefined;
+    const provider: FakeProvider = {
+      port: 0,
+      received,
+      send: (event) => client?.send(JSON.stringify(event)),
+      get authorization() {
+        return authorization;
+      },
+      close: () => wss.close(),
+    };
+    wss.on('connection', (socket, request) => {
+      client = socket;
+      authorization = request.headers.authorization;
+      socket.on('message', (raw) => received.push(JSON.parse(String(raw))));
+    });
+    wss.on('listening', () => {
+      provider.port = (wss.address() as { port: number }).port;
+      resolve(provider);
+    });
+  });
+}
+
+describe('OpenAiRealtimeTranscriber (ws client, audio/pcmu, ADR-027)', () => {
+  it('opens a transcription session, forwards μ-law as-is, and surfaces VAD turns', async () => {
+    const provider = await startFakeProvider();
+    const transcriber = new OpenAiRealtimeTranscriber(
+      { ...STT_CONFIG, apiUrl: `http://127.0.0.1:${provider.port}` },
+      600,
+    );
+    const onUtterance = vi.fn();
+    const onSpeechStarted = vi.fn();
+    const stream = await transcriber.open(
+      { onUtterance, onSpeechStarted, onError: vi.fn() },
+      'es-ES',
+    );
+
+    await vi.waitFor(() => expect(provider.received.length).toBeGreaterThan(0));
+    expect(provider.authorization).toBe(`Bearer ${STT_CONFIG.apiKey}`);
+    const sessionUpdate = provider.received[0] as {
+      type: string;
+      session: {
+        type: string;
+        audio: {
+          input: {
+            format: { type: string };
+            transcription: { model: string; language: string };
+            turn_detection: { type: string; silence_duration_ms: number };
+          };
+        };
+      };
+    };
+    expect(sessionUpdate.type).toBe('session.update');
+    expect(sessionUpdate.session.type).toBe('transcription');
+    expect(sessionUpdate.session.audio.input.format.type).toBe('audio/pcmu');
+    expect(sessionUpdate.session.audio.input.transcription.model).toBe('gpt-4o-transcribe');
+    expect(sessionUpdate.session.audio.input.transcription.language).toBe('es');
+    expect(sessionUpdate.session.audio.input.turn_detection).toEqual({
+      type: 'server_vad',
+      silence_duration_ms: 600,
+    });
+
+    stream.push(Buffer.from([0xff, 0xfe, 0x80]));
+    await vi.waitFor(() => expect(provider.received.length).toBe(2));
+    expect(provider.received[1]).toEqual({
+      type: 'input_audio_buffer.append',
+      audio: Buffer.from([0xff, 0xfe, 0x80]).toString('base64'),
+    });
+
+    provider.send({ type: 'input_audio_buffer.speech_started' });
+    provider.send({
+      type: 'conversation.item.input_audio_transcription.completed',
+      transcript: '  quiero cambiar mi cita  ',
+    });
+    await vi.waitFor(() => expect(onUtterance).toHaveBeenCalledWith('quiero cambiar mi cita'));
+    expect(onSpeechStarted).toHaveBeenCalled();
+
+    stream.close();
+    provider.close();
+  });
+
+  it('rejects when the provider is unreachable — a deaf phone line fails loudly', async () => {
+    const transcriber = new OpenAiRealtimeTranscriber(
+      { ...STT_CONFIG, apiUrl: 'http://127.0.0.1:1', timeoutMs: 500 },
+      600,
+    );
+    await expect(
+      transcriber.open({ onUtterance: vi.fn(), onError: vi.fn() }),
+    ).rejects.toThrow(/Realtime/);
+  });
+});
+
+// --- Bridge call flow ---------------------------------------------------------
+
+const CLIENT_KEY = 'k'.repeat(32);
+
+function fakeApi(): AurionApiPort & { closeSession: ReturnType<typeof vi.fn> } {
+  return {
+    startSession: async () => ({ sessionId: 'vs-1' }),
+    listPublishedKnowledge: async () => [],
+    requestAction: async () => ({ actionId: 'a-1', status: 'requested', approvalRequired: true }),
+    getActionStatus: async () => 'requested',
+    closeSession: vi.fn(async () => undefined),
+  };
+}
+
+function fakeStreamingTranscriber(): {
+  port: StreamingTranscriptionPort;
+  handlers: () => UtteranceStreamHandlers;
+  pushed: Buffer[];
+  closed: () => boolean;
+} {
+  let captured: UtteranceStreamHandlers | null = null;
+  let wasClosed = false;
+  const pushed: Buffer[] = [];
+  return {
+    port: {
+      open: async (handlers) => {
+        captured = handlers;
+        return {
+          push: (audio) => pushed.push(audio),
+          close: () => {
+            wasClosed = true;
+          },
+        };
+      },
+    },
+    handlers: () => captured!,
+    pushed,
+    closed: () => wasClosed,
+  };
+}
+
+// One PCM16 24 kHz buffer of 480 samples → exactly one 160-byte wire frame.
+const PCM_REPLY = Buffer.alloc(960);
+
+interface PhoneClient {
+  send(event: Record<string, unknown>): void;
+  next(): Promise<Record<string, unknown>>;
+  /** Abrupt drop, like a caller losing signal. */
+  terminate(): void;
+  closed: Promise<number>;
+}
+
+function connectPhone(port: number): Promise<PhoneClient> {
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/twilio`);
+    const inbox: Record<string, unknown>[] = [];
+    const waiters: Array<(event: Record<string, unknown>) => void> = [];
+    const closed = new Promise<number>((resolveClose) =>
+      socket.on('close', (code) => resolveClose(code)),
+    );
+    socket.on('message', (raw) => {
+      const event = JSON.parse(String(raw));
+      const waiter = waiters.shift();
+      if (waiter) waiter(event);
+      else inbox.push(event);
+    });
+    socket.on('error', reject);
+    socket.on('open', () =>
+      resolve({
+        send: (event) => socket.send(JSON.stringify(event)),
+        next: () =>
+          new Promise((resolveNext) => {
+            const queued = inbox.shift();
+            if (queued) resolveNext(queued);
+            else waiters.push(resolveNext);
+          }),
+        terminate: () => socket.terminate(),
+        closed,
+      }),
+    );
+  });
+}
+
+function startEvent(key: string | null): Record<string, unknown> {
+  return {
+    event: 'start',
+    start: {
+      streamSid: 'MZ1',
+      callSid: 'CA1',
+      ...(key ? { customParameters: { key } } : {}),
+    },
+  };
+}
+
+describe('Twilio bridge call flow (ADR-027: transport changes, authority does not)', () => {
+  let server: Server | null = null;
+  afterEach(() => {
+    server?.close();
+    server = null;
+  });
+
+  function boot(transcriber: StreamingTranscriptionPort, api = fakeApi()): number {
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api,
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: {
+        clientKeys: [CLIENT_KEY],
+        api,
+        brain: new ScriptedBrain(),
+        transcriber,
+        synthesizer: {
+          synthesize: async () => ({ audio: PCM_REPLY, mimeType: 'audio/pcm;rate=24000' }),
+        },
+        telephony: { greeting: 'Hola, soy AURION.', lang: 'es-ES', silenceMs: 600 },
+      },
+      log: () => undefined,
+    });
+    return (server.address() as { port: number }).port;
+  }
+
+  it('answers with the greeting, runs caller turns through the SAME engine, and hangs up completed', async () => {
+    const stt = fakeStreamingTranscriber();
+    const api = fakeApi();
+    const port = boot(stt.port, api);
+    const phone = await connectPhone(port);
+
+    phone.send(startEvent(CLIENT_KEY));
+    const greeting = await phone.next();
+    expect(greeting).toMatchObject({ event: 'media', streamSid: 'MZ1' });
+    expect(Buffer.from((greeting as { media: { payload: string } }).media.payload, 'base64')).toHaveLength(160);
+
+    // Caller audio is forwarded as-is to the streaming transcriber.
+    phone.send({ event: 'media', media: { payload: Buffer.from('ulaw').toString('base64') } });
+    await vi.waitFor(() => expect(stt.pushed.length).toBe(1));
+
+    // A VAD-completed utterance runs engine.userTurn → the reply comes back voiced.
+    stt.handlers().onUtterance('tengo un problema con mi pedido');
+    expect(await phone.next()).toMatchObject({ event: 'media', streamSid: 'MZ1' });
+
+    // Hangup closes the record as completed — silence is never an outcome.
+    phone.send({ event: 'stop' });
+    expect(await phone.closed).toBe(1000);
+    expect(api.closeSession).toHaveBeenCalledWith(
+      'vs-1',
+      'completed',
+      expect.objectContaining({ outcome: 'caller_hangup' }),
+    );
+  });
+
+  it('barge-in: caller speech during playback clears the outbound buffer', async () => {
+    const stt = fakeStreamingTranscriber();
+    const port = boot(stt.port);
+    const phone = await connectPhone(port);
+    phone.send(startEvent(CLIENT_KEY));
+    await phone.next(); // greeting
+    stt.handlers().onSpeechStarted?.();
+    expect(await phone.next()).toEqual({ event: 'clear', streamSid: 'MZ1' });
+  });
+
+  it('rejects calls without a valid key before any audio is processed', async () => {
+    const stt = fakeStreamingTranscriber();
+    const port = boot(stt.port);
+
+    const noKey = await connectPhone(port);
+    noKey.send(startEvent(null));
+    expect(await noKey.closed).toBe(4401);
+
+    const badKey = await connectPhone(port);
+    badKey.send(startEvent('wrong-key-wrong-key-wrong-key!!'));
+    expect(await badKey.closed).toBe(4401);
+    expect(stt.pushed).toHaveLength(0);
+  });
+
+  it('closes on malformed frames, and a dropped call is recorded as failed', async () => {
+    const stt = fakeStreamingTranscriber();
+    const api = fakeApi();
+    const port = boot(stt.port, api);
+
+    const malformed = await connectPhone(port);
+    malformed.send('not json' as never);
+    expect(await malformed.closed).toBe(1008);
+
+    // A started call dropped mid-air is recorded as failed (ADR-018 by phone).
+    const phone = await connectPhone(port);
+    phone.send(startEvent(CLIENT_KEY));
+    await phone.next(); // greeting ensures the session started
+    phone.terminate();
+    await vi.waitFor(() =>
+      expect(api.closeSession).toHaveBeenCalledWith(
+        'vs-1',
+        'failed',
+        expect.objectContaining({ outcome: 'connection_dropped' }),
+      ),
+    );
+    expect(stt.closed()).toBe(true);
+  });
+
+  it('refuses /twilio upgrades when telephony is off', async () => {
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: null,
+      log: () => undefined,
+    });
+    const port = (server.address() as { port: number }).port;
+    await expect(connectPhone(port)).rejects.toThrow();
+  });
+});

@@ -1,5 +1,7 @@
+import type { Server } from 'node:http';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { WebSocket, type WebSocketServer } from 'ws';
+import { WebSocket } from 'ws';
 
 import type { AurionApiPort, TranscriptionPort } from '../src/application/ports.js';
 import { loadGatewayConfig } from '../src/config.js';
@@ -160,7 +162,7 @@ function connectClient(port: number): Promise<TestClient> {
 }
 
 describe('WS audio flow (ADR-025: capture changes, authority does not)', () => {
-  let server: WebSocketServer | null = null;
+  let server: Server | null = null;
   afterEach(() => {
     server?.close();
     server = null;

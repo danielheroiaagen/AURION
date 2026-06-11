@@ -41,6 +41,26 @@ export interface TranscriptionPort {
   transcribe(input: UtteranceAudio): Promise<string>;
 }
 
+// --- Streaming speech to text (telephony, ADR-027) ---------------------------
+
+export interface UtteranceStreamHandlers {
+  /** One complete caller utterance, as segmented by the provider's VAD. */
+  onUtterance(text: string): void;
+  /** The caller started speaking — barge-in hook. */
+  onSpeechStarted?(): void;
+  onError(error: Error): void;
+}
+
+export interface UtteranceStream {
+  /** Feed one audio chunk in the call's wire format (μ-law 8 kHz). */
+  push(audio: Buffer): void;
+  close(): void;
+}
+
+export interface StreamingTranscriptionPort {
+  open(handlers: UtteranceStreamHandlers, lang?: string): Promise<UtteranceStream>;
+}
+
 // --- Text to speech ----------------------------------------------------------
 
 export interface SynthesizedSpeech {

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { IncomingMessage } from 'node:http';
+import { createServer, type IncomingMessage, type Server } from 'node:http';
 
 import { WebSocket, WebSocketServer } from 'ws';
 
@@ -12,6 +12,7 @@ import type {
 } from '../application/ports.js';
 import { SpeechSynthesisError } from './openai-speech.js';
 import { TranscriptionError } from './openai-transcriber.js';
+import { handleTwilioCall, type TwilioBridgeOptions } from './twilio-bridge.js';
 import {
   parseClientEvent,
   ProtocolError,
@@ -24,6 +25,9 @@ import {
  * engine per connection, protocol errors keep the socket alive, socket
  * close finalizes the session (`completed` after session.end, `failed`
  * on an abrupt drop).
+ *
+ * One port, two upgrade paths: `/ws` (widget contract) and — when
+ * telephony is configured — `/twilio` (Media Streams bridge, ADR-027).
  */
 export interface WsServerOptions {
   readonly port: number;
@@ -34,13 +38,15 @@ export interface WsServerOptions {
   readonly transcriber: TranscriptionPort | null;
   /** Server-side TTS (ADR-026); null means replies are text-only. */
   readonly synthesizer: SpeechSynthesisPort | null;
+  /** Telephony bridge (ADR-027); null means /twilio upgrades are refused. */
+  readonly twilio?: TwilioBridgeOptions | null;
   readonly maxAudioBytes?: number;
   readonly log?: (message: string) => void;
 }
 
-export function startWsServer(options: WsServerOptions): WebSocketServer {
+export function startWsServer(options: WsServerOptions): Server {
   const log = options.log ?? ((message: string) => process.stdout.write(`${message}\n`));
-  const server = new WebSocketServer({ port: options.port, path: '/ws' });
+  const server = new WebSocketServer({ noServer: true });
 
   server.on('connection', (socket: WebSocket, request: IncomingMessage) => {
     const key = new URL(request.url ?? '/', 'http://gateway').searchParams.get('key');
@@ -180,6 +186,35 @@ export function startWsServer(options: WsServerOptions): WebSocketServer {
     });
   });
 
-  log(`voice gateway listening on :${options.port}/ws`);
-  return server;
+  const twilioServer = options.twilio ? new WebSocketServer({ noServer: true }) : null;
+  twilioServer?.on('connection', (socket: WebSocket) => {
+    handleTwilioCall(socket, { ...options.twilio!, log });
+  });
+
+  const httpServer = createServer((_request, response) => {
+    response.writeHead(426, { 'content-type': 'text/plain' });
+    response.end('WebSocket only.');
+  });
+  httpServer.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url ?? '/', 'http://gateway').pathname;
+    if (pathname === '/ws') {
+      server.handleUpgrade(request, socket, head, (ws) => server.emit('connection', ws, request));
+    } else if (pathname === '/twilio' && twilioServer) {
+      twilioServer.handleUpgrade(request, socket, head, (ws) =>
+        twilioServer.emit('connection', ws),
+      );
+    } else {
+      socket.destroy();
+    }
+  });
+  httpServer.on('close', () => {
+    server.close();
+    twilioServer?.close();
+  });
+  httpServer.listen(options.port);
+
+  log(
+    `voice gateway listening on :${options.port}/ws${options.twilio ? ' and /twilio (ADR-027)' : ''}`,
+  );
+  return httpServer;
 }

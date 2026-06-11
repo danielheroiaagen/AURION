@@ -7,6 +7,7 @@
 export type BrainMode = 'scripted' | 'llm';
 export type SttMode = 'off' | 'openai';
 export type TtsMode = 'off' | 'openai';
+export type TelephonyMode = 'off' | 'twilio';
 
 export interface LlmConfig {
   readonly apiUrl: string;
@@ -33,6 +34,12 @@ export interface TtsConfig {
   readonly maxTextChars: number;
 }
 
+export interface TelephonyConfig {
+  readonly greeting: string;
+  readonly lang: string;
+  readonly silenceMs: number;
+}
+
 export interface GatewayConfig {
   readonly port: number;
   readonly apiUrl: string;
@@ -44,6 +51,8 @@ export interface GatewayConfig {
   readonly stt: SttConfig | null;
   readonly ttsMode: TtsMode;
   readonly tts: TtsConfig | null;
+  readonly telephonyMode: TelephonyMode;
+  readonly telephony: TelephonyConfig | null;
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -151,6 +160,29 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     };
   }
 
+  const telephonyMode = (env.TELEPHONY_MODE ?? 'off').trim();
+  if (telephonyMode !== 'off' && telephonyMode !== 'twilio') {
+    throw new Error(`TELEPHONY_MODE "${telephonyMode}" is unknown; supported: off, twilio.`);
+  }
+
+  let telephony: TelephonyConfig | null = null;
+  if (telephonyMode === 'twilio') {
+    // A phone call has no text fallback: a gateway that cannot both hear
+    // and speak must not answer phones (ADR-027).
+    if (sttMode !== 'openai' || ttsMode !== 'openai') {
+      throw new Error(
+        'TELEPHONY_MODE=twilio requires STT_MODE=openai and TTS_MODE=openai (ADR-027).',
+      );
+    }
+    telephony = {
+      greeting:
+        (env.PHONE_GREETING ?? '').trim() ||
+        'Hola, soy el asistente virtual. ¿En qué puedo ayudarte?',
+      lang: (env.PHONE_LANG ?? 'es-ES').trim(),
+      silenceMs: parsePositiveInt(env.TELEPHONY_SILENCE_MS, 600),
+    };
+  }
+
   return {
     port: parsePositiveInt(env.PORT, 8080),
     apiUrl: apiUrl.replace(/\/+$/, ''),
@@ -162,5 +194,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     stt,
     ttsMode,
     tts,
+    telephonyMode,
+    telephony,
   };
 }

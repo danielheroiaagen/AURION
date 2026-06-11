@@ -1,5 +1,7 @@
+import type { Server } from 'node:http';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { WebSocket, type WebSocketServer } from 'ws';
+import { WebSocket } from 'ws';
 
 import type { AurionApiPort, SpeechSynthesisPort } from '../src/application/ports.js';
 import { loadGatewayConfig } from '../src/config.js';
@@ -145,7 +147,7 @@ function connectClient(port: number): Promise<TestClient> {
 }
 
 describe('WS voice flow (ADR-026: text first, voice after, never instead)', () => {
-  let server: WebSocketServer | null = null;
+  let server: Server | null = null;
   afterEach(() => {
     server?.close();
     server = null;
