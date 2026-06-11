@@ -3,7 +3,7 @@ project: AURION
 document: Phase 20 Operator Voice Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-11
 related: ADR-026, ADR-027, ADR-029
 ---
@@ -35,13 +35,14 @@ it with the ffmpeg system binary in the gateway image (ADR-029).
 
 ## Acceptance criteria
 
-- [ ] With `TTS_MODE=heygen` + `TTS_VOICE=<id>`, the widget's
+- [x] With `TTS_MODE=heygen` + `TTS_VOICE=<id>`, the widget's
       `audio.agent` carries the cloned voice (MP3) and a phone call
       voices replies through the ffmpeg decode — same approval-gated
-      engine, no protocol changes.
-- [ ] heygen mode refuses to boot without key/voice id; telephony with
+      engine, no protocol changes. Verified on a REAL call: Daniel heard
+      his own cloned voice answer +1 814 936 2930.
+- [x] heygen mode refuses to boot without key/voice id; telephony with
       heygen TTS refuses to boot without ffmpeg in the image.
-- [ ] npm runtime dependency set unchanged (`ws` only); all suites green
+- [x] npm runtime dependency set unchanged (`ws` only); all suites green
       in CI.
 
 ## Out of scope
@@ -51,4 +52,16 @@ it with the ffmpeg system binary in the gateway image (ADR-029).
 
 ## Closure evidence
 
-To be completed at phase close.
+- PR #35 squash-merged into `main` as `91d47b7` (2026-06-11): 284
+  contract tests (7 new), 66 gateway Vitest tests (10 new), all seven
+  checks green on the first run; gitleaks clean.
+- PR #36 (`b5e051c`): the ADR-027 boot check predated heygen mode and
+  refused the first production start — caught FAIL-CLOSED, fixed with a
+  regression test (`answers phones with the heygen voice too`).
+- Live verification (2026-06-11): Daniel called +1 814 936 2930 and was
+  answered in his own cloned voice end to end (HeyGen MP3 → ffmpeg →
+  μ-law on the Twilio wire).
+- Operator decision after hearing it: default voice switched to OpenAI
+  `alloy` (faster, preferred sound) — one `.env` change + gateway
+  restart, the heygen adapter remains a config flag away (ADR-029's
+  promise, kept).

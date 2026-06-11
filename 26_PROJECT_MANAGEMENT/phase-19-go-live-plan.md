@@ -3,7 +3,7 @@ project: AURION
 document: Phase 19 Go-Live Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-11
 related: ADR-016, ADR-020, ADR-027, ADR-028
 ---
@@ -43,9 +43,10 @@ approval-gated engine.
       below).
 - [x] `POST /twiml` returns the connect TwiML ONLY for Twilio-signed
       requests; unsigned POST → 403, GET → 405 (verified live).
-- [ ] Calling +1 814 936 2930 reaches the gateway: greeting heard,
-      conversation recorded as a voice session in the API, actions
-      approval-gated. (Number cutover done; awaiting Daniel's first call.)
+- [x] Calling +1 814 936 2930 reaches the gateway: Daniel called and was
+      heard and answered (first with his cloned voice, then switched to
+      OpenAI by preference — one `.env` change + gateway restart, exactly
+      as ADR-029 promised).
 - [x] All suites green in CI; gitleaks clean; no production secret in the
       repo.
 
