@@ -421,6 +421,46 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     expect(await phone.next()).toEqual({ event: 'clear', streamSid: 'MZ1' });
   });
 
+  it('voices MP3 synthesis through the injected transcoder (ADR-029, operator voice)', async () => {
+    const stt = fakeStreamingTranscriber();
+    const ulaw = Buffer.alloc(160, 0x7f);
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: {
+        clientKeys: [CLIENT_KEY],
+        api: fakeApi(),
+        brain: new ScriptedBrain(),
+        transcriber: stt.port,
+        synthesizer: {
+          synthesize: async () => ({ audio: Buffer.from('mp3-bytes'), mimeType: 'audio/mpeg' }),
+        },
+        mp3ToUlaw: async () => ulaw,
+        telephony: {
+          greeting: 'Hola, soy Daniel.',
+          lang: 'es-ES',
+          silenceMs: 600,
+          twilioAuthToken: 'twilio-token-testtesttest',
+          publicUrl: 'https://aurion.test',
+        },
+      },
+      log: () => undefined,
+    });
+    const port = (server.address() as { port: number }).port;
+    const phone = await connectPhone(port);
+    phone.send(startEvent(CLIENT_KEY));
+    const greeting = await phone.next();
+    expect(greeting).toMatchObject({ event: 'media', streamSid: 'MZ1' });
+    expect(
+      Buffer.from((greeting as { media: { payload: string } }).media.payload, 'base64').equals(ulaw),
+    ).toBe(true);
+  });
+
   it('rejects calls without a valid key before any audio is processed', async () => {
     const stt = fakeStreamingTranscriber();
     const port = boot(stt.port);

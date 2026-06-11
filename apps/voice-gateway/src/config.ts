@@ -6,7 +6,7 @@
  */
 export type BrainMode = 'scripted' | 'llm';
 export type SttMode = 'off' | 'openai';
-export type TtsMode = 'off' | 'openai';
+export type TtsMode = 'off' | 'openai' | 'heygen';
 export type TelephonyMode = 'off' | 'twilio';
 
 export interface LlmConfig {
@@ -140,25 +140,31 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
   }
 
   const ttsMode = (env.TTS_MODE ?? 'off').trim();
-  if (ttsMode !== 'off' && ttsMode !== 'openai') {
-    throw new Error(`TTS_MODE "${ttsMode}" is unknown; supported: off, openai.`);
+  if (ttsMode !== 'off' && ttsMode !== 'openai' && ttsMode !== 'heygen') {
+    throw new Error(`TTS_MODE "${ttsMode}" is unknown; supported: off, openai, heygen.`);
   }
 
   let tts: TtsConfig | null = null;
-  if (ttsMode === 'openai') {
+  if (ttsMode !== 'off') {
     const apiKey = env.TTS_API_KEY;
     if (!apiKey || apiKey.length < 8) {
-      throw new Error('TTS_API_KEY is required in openai TTS mode (ADR-026).');
+      throw new Error(`TTS_API_KEY is required in ${ttsMode} TTS mode (ADR-026/ADR-029).`);
     }
-    const ttsUrl = (env.TTS_API_URL ?? 'https://api.openai.com/v1').trim();
+    const defaultUrl = ttsMode === 'heygen' ? 'https://api.heygen.com' : 'https://api.openai.com/v1';
+    const ttsUrl = (env.TTS_API_URL ?? '').trim() || defaultUrl;
     if (!/^https?:\/\//.test(ttsUrl)) {
       throw new Error('TTS_API_URL must be an http(s) URL (ADR-026).');
+    }
+    const voice = (env.TTS_VOICE ?? '').trim() || (ttsMode === 'openai' ? 'alloy' : '');
+    if (ttsMode === 'heygen' && !voice) {
+      // The operator's cloned voice id — there is no sensible default.
+      throw new Error('TTS_VOICE (the HeyGen voice id) is required in heygen TTS mode (ADR-029).');
     }
     tts = {
       apiUrl: ttsUrl.replace(/\/+$/, ''),
       apiKey,
       model: (env.TTS_MODEL ?? 'gpt-4o-mini-tts').trim(),
-      voice: (env.TTS_VOICE ?? 'alloy').trim(),
+      voice,
       timeoutMs: parsePositiveInt(env.TTS_TIMEOUT_MS, 30_000),
       maxTextChars: parsePositiveInt(env.TTS_MAX_TEXT_CHARS, 1_000),
     };

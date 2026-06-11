@@ -12,6 +12,8 @@ RUN npm --workspace @aurion/voice-gateway run build && npm prune --omit=dev
 
 FROM node:22-alpine
 ENV NODE_ENV=production
+# MP3 → μ-law decode for the operator's cloned voice on the phone (ADR-029).
+RUN apk add --no-cache ffmpeg
 WORKDIR /repo
 COPY --from=build /repo/package.json ./package.json
 COPY --from=build /repo/node_modules ./node_modules

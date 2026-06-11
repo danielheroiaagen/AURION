@@ -23,8 +23,10 @@ export interface TwilioBridgeOptions {
   readonly api: AurionApiPort;
   readonly brain: AgentBrainPort;
   readonly transcriber: StreamingTranscriptionPort;
-  /** Must synthesize PCM (ADR-026 `pcm` format) — the bridge owns the μ-law wire. */
+  /** PCM (ADR-026 `pcm` format) or MP3 with a transcoder — the bridge owns the μ-law wire. */
   readonly synthesizer: SpeechSynthesisPort;
+  /** MP3 → μ-law decode for non-PCM synthesizers (ADR-029, ffmpeg-backed). */
+  readonly mp3ToUlaw?: ((mp3: Buffer) => Promise<Buffer>) | null;
   readonly telephony: TelephonyConfig;
   readonly log?: (message: string) => void;
 }
@@ -58,10 +60,15 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
 
   const say = async (text: string): Promise<void> => {
     const speech = await options.synthesizer.synthesize(text);
-    if (!speech.mimeType.startsWith('audio/pcm')) {
-      throw new Error(`Telephony needs PCM synthesis, got ${speech.mimeType}.`);
+    if (speech.mimeType.startsWith('audio/pcm')) {
+      sendFrames(pcm16ToUlaw8k(speech.audio));
+      return;
     }
-    sendFrames(pcm16ToUlaw8k(speech.audio));
+    if (speech.mimeType === 'audio/mpeg' && options.mp3ToUlaw) {
+      sendFrames(await options.mp3ToUlaw(speech.audio));
+      return;
+    }
+    throw new Error(`Telephony cannot voice ${speech.mimeType} without a transcoder (ADR-029).`);
   };
 
   const runTurn = (text: string): void => {

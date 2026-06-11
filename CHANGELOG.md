@@ -99,6 +99,12 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   apology on a failed turn. SAME conversation engine and approval-gated
   actions — the bridge changes transport, never authority. Fail-closed:
   twilio mode refuses to boot without STT and TTS both in openai mode.
+- ADR-029 operator cloned voice (`TTS_MODE=heygen`): the agent can speak
+  with Daniel's own HeyGen-cloned voice on BOTH channels — the widget
+  plays the MP3 natively, the phone decodes it through the ffmpeg system
+  binary now shipped in the gateway image (npm deps stay `ws`-only).
+  Fail-closed: heygen mode requires the key and the voice id; telephony
+  with heygen TTS refuses to boot without ffmpeg.
 - ADR-028 signed TwiML endpoint + go-live edge: `POST /twiml` on the
   gateway returns the phone number's connect TwiML ONLY for requests
   carrying a valid `X-Twilio-Signature` (HMAC-SHA1 over the pinned

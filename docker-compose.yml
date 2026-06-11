@@ -96,8 +96,9 @@ services:
       # Server-side TTS (ADR-026). Same key discipline as STT.
       TTS_MODE: ${TTS_MODE:-off}
       TTS_API_KEY: ${TTS_API_KEY:-}
+      TTS_API_URL: ${TTS_API_URL:-}
       TTS_MODEL: ${TTS_MODEL:-gpt-4o-mini-tts}
-      TTS_VOICE: ${TTS_VOICE:-alloy}
+      TTS_VOICE: ${TTS_VOICE:-}
       # Telephony bridge (ADR-027). Requires STT and TTS in openai mode.
       TELEPHONY_MODE: ${TELEPHONY_MODE:-off}
       PHONE_GREETING: ${PHONE_GREETING:-}
