@@ -73,11 +73,13 @@ describe('LlmBrain', () => {
     // (found live on the production phone line).
     expect(body.max_completion_tokens).toBe(300);
     expect(body.max_tokens).toBeUndefined();
+    // GPT-5-era models enforce ^[a-zA-Z0-9_-]+$ on tool names (found live):
+    // dots become underscores on the wire.
     expect(body.tools.map((tool: { function: { name: string } }) => tool.function.name)).toEqual([
-      'ticket.create',
-      'calendar.update',
-      'email.send',
-      'whatsapp.send',
+      'ticket_create',
+      'calendar_update',
+      'email_send',
+      'whatsapp_send',
     ]);
     expect(body.messages[0].content).toContain('Pricing FAQ');
     expect(body.messages[0].content).toContain('human approves');
@@ -106,7 +108,8 @@ describe('LlmBrain', () => {
         content: 'ok',
         tool_calls: [
           { function: { name: 'database.drop', arguments: '{}' } },
-          { function: { name: 'calendar.update', arguments: '{"request":"mover cita"}' } },
+          // wire form from the model maps back to the dotted catalog type
+          { function: { name: 'calendar_update', arguments: '{"request":"mover cita"}' } },
         ],
       }),
     );
