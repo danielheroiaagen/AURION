@@ -3,7 +3,7 @@ project: AURION
 document: Phase 22 Futurist Design Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-11
 related: ADR-017, ADR-024, ADR-031
 ---
@@ -33,11 +33,11 @@ Tailwind + shadcn (ADR-031).
 
 ## Acceptance criteria
 
-- [ ] Dashboard builds with Tailwind; all dashboard logic tests and
+- [x] Dashboard builds with Tailwind; all dashboard logic tests and
       typecheck green; widget bundle unchanged in dependency count.
-- [ ] One visual language across dashboard and widget (tokens v2);
+- [x] One visual language across dashboard and widget (tokens v2);
       legacy pages look correct without conversion.
-- [ ] npm audit clean with the new dev dependencies; all CI checks green.
+- [x] npm audit clean with the new dev dependencies; all CI checks green.
 
 ## Out of scope
 
@@ -46,4 +46,15 @@ Tailwind + shadcn (ADR-031).
 
 ## Closure evidence
 
-To be completed at phase close.
+- PR #40 squash-merged into `main` as `fdf2612` (2026-06-11), all seven
+  checks green; follow-up PR #41 (`1f91ea0`) pinned the THIRD
+  lightningcss native (alpine/musl) — the dashboard image build only
+  fails on the VPS because CI's e2e builds the core profile, found and
+  fixed at deploy time. Lockfile cross-platform natives (win32/gnu/musl)
+  are now explicit, immune to the npm one-platform-lock bug.
+- 300 contract tests (8 new in `test_phase22_design.py`; phase 7/13/15
+  amended to the ADR-031 dependency contract — the no-chart-library and
+  widget-zero-dep invariants stay enforced), dashboard 28 + typecheck +
+  build, widget 20 + build (10.6 kB), npm audit clean.
+- Deployed to production the same day: the redesigned dashboard serves at
+  https://aurion.srv1321945.hstgr.cloud behind Traefik.
