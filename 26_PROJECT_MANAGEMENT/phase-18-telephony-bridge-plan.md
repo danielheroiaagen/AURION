@@ -3,7 +3,7 @@ project: AURION
 document: Phase 18 Telephony Bridge Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-11
 related: ADR-018, ADR-025, ADR-026, ADR-027
 ---
@@ -44,18 +44,18 @@ runtime dependencies — `ws` speaks both sides.
 
 ## Acceptance criteria
 
-- [ ] A simulated call on `/twilio` (start → media → stop) round-trips:
+- [x] A simulated call on `/twilio` (start → media → stop) round-trips:
       greeting frames out, an utterance from the (mocked) transcriber
       runs `engine.userTurn`, the reply comes back as μ-law media frames,
       `stop` closes the session `completed` — approval-gated actions
       unchanged.
-- [ ] Calls without a valid `key` custom parameter are closed before any
+- [x] Calls without a valid `key` custom parameter are closed before any
       audio is processed; `/ws` behavior is unchanged (regression-tested).
-- [ ] `TELEPHONY_MODE=twilio` refuses to boot without STT and TTS both in
+- [x] `TELEPHONY_MODE=twilio` refuses to boot without STT and TTS both in
       openai mode — a phone gateway that cannot hear and speak does not
       answer.
-- [ ] Caller speech during playback sends Twilio `clear` (barge-in v1).
-- [ ] Runtime dependency set unchanged (`ws` only); all suites green in
+- [x] Caller speech during playback sends Twilio `clear` (barge-in v1).
+- [x] Runtime dependency set unchanged (`ws` only); all suites green in
       CI with 0 vulnerabilities.
 
 ## Out of scope
@@ -67,4 +67,29 @@ runtime dependencies — `ws` speaks both sides.
 
 ## Closure evidence
 
-To be completed at phase close.
+Local verification passed on branch `phase-18/telephony-bridge`
+(2026-06-11):
+
+- [x] `npm test` passed: **268** Python contract tests (11 new in
+      `tests/project/test_phase18_telephony.py`).
+- [x] Gateway Vitest suite passed: **53** tests across 6 files, 14 of
+      them in the new `test/telephony.spec.ts` (config fail-closed, μ-law
+      round-trip within quantization error, Twilio frame parsing,
+      Realtime adapter against a fake provider WS asserting
+      `audio/pcmu` + `server_vad`, full call flow over real sockets:
+      greeting → turn → barge-in `clear` → hangup `completed` / drop
+      `failed`, key gating with `4401`).
+- [x] Typecheck clean; gitleaks clean on full history.
+- [x] Realtime API facts verified against current OpenAI docs before
+      coding (transcription sessions, `audio/pcmu` native telephony
+      input, VAD events) — not from model memory.
+
+Remote verification on PR #32: all seven checks green on head `c84f226`
+on the FIRST run (2026-06-11).
+
+Merge evidence: PR #32 squash-merged into `main` as `00fda14` on
+2026-06-11.
+
+Next (meta 2 continues): phase 19 go-live — VPS, domain, TLS, the real
+Twilio number pointing its TwiML at `wss://<domain>/twilio`, IdP real;
+then the promised design pass with real screenshots.
