@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AURION — Asistente de voz con IA que contesta tus llamadas 24/7</title>
-  <meta name="description" content="AURION atiende las llamadas de tu negocio con una IA que entiende, agenda citas, abre incidencias y envía emails o WhatsApp. Cada acción la aprueba un humano. Pruébalo con una demo." />
+  <title>AURION — Asistente de voz con IA que contesta tus llamadas en español, 24/7</title>
+  <meta name="description" content="AURION atiende las llamadas de tu negocio con una IA que entiende, agenda citas, abre incidencias y envía emails o WhatsApp. Cada acción la aprueba un humano. Habla con AURION ahora o reserva una demo." />
   <meta property="og:title" content="AURION — Asistente de voz con IA para tu negocio" />
   <meta property="og:description" content="Una IA contesta tus llamadas, agenda, gestiona y nunca pierde un cliente. Reserva una demo." />
   <meta property="og:type" content="website" />
@@ -16,6 +16,7 @@
     <div class="wrap nav">
       <div class="brand">AURION</div>
       <nav class="nav-links">
+        <a href="#escucha">Escucha</a>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#caracteristicas">Características</a>
         <a href="#demo" class="btn">Reservar demo</a>
@@ -24,28 +25,104 @@
   </header>
 
   <main>
+    <!-- ================================================================
+         HERO — Phase 31 U1: proof-led (ADR-040)
+         ================================================================ -->
     <section class="hero">
       <div class="wrap">
         <span class="tag">● Inteligencia artificial conversacional en español</span>
-        <h1>La IA que <span class="grad">contesta tu teléfono</span><br />y no pierde ni una llamada</h1>
+        <h1>AURION: la recepcionista IA que atiende tus llamadas en español, 24/7</h1>
         <p class="lead">
-          AURION atiende las llamadas de tu negocio las 24 horas: entiende lo que
-          el cliente necesita, agenda citas, abre incidencias y prepara emails o
-          WhatsApp. Tú apruebas cada acción desde un panel. Sin contratar más
-          personal.
+          Agenda citas, resume cada conversación, prepara WhatsApps y te pide aprobación
+          antes de ejecutar cualquier acción. Sin cambiar tu número. Sin contratar más
+          personal. Sin perder oportunidades.
         </p>
         <div class="cta-row">
-          <a href="#demo" class="btn">Reservar una demo</a>
-          <a href="#como-funciona" class="btn ghost">Ver cómo funciona</a>
+          <!-- Primary CTA: activates the embedded voice widget (lazy load). -->
+          <button id="cta-live-demo" class="btn" type="button">Habla con AURION ahora</button>
+          <!-- Secondary CTA: jump to the existing demo-request form. -->
+          <a href="#demo" class="btn ghost">Reservar demo de 15 minutos</a>
         </div>
         <div class="trust">
-          <span><span class="dot"></span> Habla con voz natural</span>
-          <span><span class="dot"></span> Cada acción la aprueba un humano</span>
-          <span><span class="dot"></span> Se integra con tu agenda y tu email</span>
+          <span><span class="dot"></span> Voz natural en español</span>
+          <span><span class="dot"></span> Aprobación humana antes de actuar</span>
+          <span><span class="dot"></span> Agenda, email y WhatsApp integrados</span>
         </div>
       </div>
     </section>
 
+    <!-- ================================================================
+         AUDIO DEMO — "Escucha a AURION en acción" (Phase 31 U1)
+         ================================================================ -->
+    <section id="escucha" class="section-demo-audio">
+      <div class="wrap">
+        <h2 class="section-title">Escucha a AURION en acción</h2>
+        <p class="section-sub">
+          Una clienta llama para pedir cita. AURION entiende, propone horario y deja la
+          acción pendiente de aprobación.
+        </p>
+        <div class="demo-audio-block">
+          <p class="demo-audio-label">Demostración grabada con la voz real del producto.</p>
+          <!-- preload="none" → no bandwidth consumed until the user presses play. -->
+          <audio controls preload="none" aria-label="Llamada de demostración: una clienta pide cita con AURION">
+            <source src="assets/demo-call.mp3" type="audio/mpeg" />
+            Tu navegador no puede reproducir audio MP3. Usa la transcripción a continuación.
+          </audio>
+          <details class="demo-transcript" aria-label="Transcripción de la llamada de demostración">
+            <summary>Ver transcripción</summary>
+            <div class="transcript-body" role="region" aria-label="Texto de la conversación de demostración">
+              <p><strong>AURION:</strong> Clínica Dental Sonrisa, le atiende AURION, su asistente virtual. ¿En qué puedo ayudarle?</p>
+              <p><strong>Marta:</strong> Hola, buenas tardes. Quería pedir cita para una limpieza, si puede ser el jueves por la tarde.</p>
+              <p><strong>AURION:</strong> Por supuesto. El jueves por la tarde tenemos hueco a las cuatro y media o a las seis. ¿Cuál le viene mejor?</p>
+              <p><strong>Marta:</strong> A las cuatro y media, perfecto.</p>
+              <p><strong>AURION:</strong> Anotado. ¿Me confirma su nombre y un teléfono de contacto, por favor?</p>
+              <p><strong>Marta:</strong> Sí, Marta López, seis uno dos, tres cuatro cinco, seis siete ocho.</p>
+              <p><strong>AURION:</strong> Gracias, Marta. Dejo preparada la cita del jueves a las cuatro y media pendiente de confirmación por el equipo. Recibirá la confirmación por WhatsApp. ¿Puedo ayudarle en algo más?</p>
+              <p><strong>Marta:</strong> No, eso es todo. ¡Muchas gracias!</p>
+              <p><strong>AURION:</strong> Gracias a usted por llamar. ¡Hasta pronto!</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         LIVE WIDGET — embedded voice call (Phase 31 U1, ADR-040)
+         Widget asset: assets/aurion-widget.js + assets/aurion-widget.css
+         Regenerate: npm --workspace @aurion/widget run build
+                     then copy dist/assets/* to apps/landing/assets/
+         Config:
+           data-gateway-url  — production WebSocket URL, e.g.
+                               wss://aurion.srv1321945.hstgr.cloud/ws
+           data-client-key   — demo tenant client key; fill at deploy time.
+                               [PENDIENTE: clave de demo] is the placeholder.
+         Lazy: the widget JS/CSS loads ONLY after the user clicks
+               #cta-live-demo — nothing loads on page load (GDPR + perf).
+         ================================================================ -->
+    <section id="live-demo" class="section-live-demo" hidden>
+      <div class="wrap">
+        <p class="demo-disclosure">
+          Hablarás con una IA. La conversación se procesa en tiempo real y no se almacena el audio.
+        </p>
+        <!--
+          Widget container. The inline embed script reads these data attributes
+          and uses them to initialise the voice widget after the user clicks.
+          OWNER ACTION REQUIRED: replace data-client-key placeholder before deploy.
+        -->
+        <div id="aurion-widget-embed"
+             data-gateway-url="wss://aurion.srv1321945.hstgr.cloud/ws"
+             data-client-key="[PENDIENTE: clave de demo]">
+          <!-- Populated by the inline embed script on first click. -->
+        </div>
+        <p id="widget-error" class="widget-error" hidden>
+          La demo en vivo no está disponible ahora mismo. Escucha la grabación o reserva una demo.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         HOW IT WORKS
+         ================================================================ -->
     <section id="como-funciona">
       <div class="wrap">
         <h2 class="section-title">Cómo funciona</h2>
@@ -74,6 +151,9 @@
       </div>
     </section>
 
+    <!-- ================================================================
+         DEMO REQUEST FORM — kept from Phase 29 (ADR-038 / lint gate)
+         ================================================================ -->
     <section id="demo">
       <div class="wrap">
         <div class="cta-band">
@@ -134,6 +214,7 @@
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+
     // Cookie consent (GDPR): no measurement scripts load until accepted.
     var cookie = document.getElementById('cookie');
     if (localStorage.getItem('aurion.cookies')) { cookie.classList.add('hidden'); }
@@ -144,6 +225,7 @@
     document.getElementById('cookie-reject').onclick = function () {
       localStorage.setItem('aurion.cookies', 'rejected'); cookie.classList.add('hidden');
     };
+
     // WhatsApp comercial (formato internacional sin +).
     var WA = '34651865093';
     var wa = document.querySelector('[data-wa]');
@@ -174,6 +256,105 @@
       });
     }
     updateWhatsApp();
+
+    // ================================================================
+    // Live widget embed — lazy activation (GDPR + performance).
+    //
+    // Nothing loads until the user clicks #cta-live-demo.
+    // On first click:
+    //   1. Reveal the #live-demo section.
+    //   2. Load the widget CSS and JS from assets/ (no external requests).
+    //   3. Inject the #aurion-widget div (required by the widget bootstrap).
+    //   4. After the module loads, programmatically fill the setup form
+    //      using the gateway URL and client key from data attributes, then
+    //      submit it — the widget transitions straight to the call UI.
+    //   5. If the key is the placeholder or the WS connection fails, show
+    //      the friendly error message instead.
+    //
+    // OWNER: set data-client-key on #aurion-widget-embed before deploy.
+    // ================================================================
+    (function () {
+      var ctaBtn = document.getElementById('cta-live-demo');
+      var liveSection = document.getElementById('live-demo');
+      var embedContainer = document.getElementById('aurion-widget-embed');
+      var errorEl = document.getElementById('widget-error');
+      var widgetLoaded = false;
+
+      function showError() {
+        if (errorEl) { errorEl.hidden = false; }
+        // Also hide the embed container to avoid blank white box.
+        if (embedContainer) { embedContainer.style.display = 'none'; }
+      }
+
+      function initWidget() {
+        if (!liveSection || !embedContainer) { return; }
+        if (widgetLoaded) {
+          // Scroll to the section on subsequent clicks.
+          liveSection.scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+
+        var gatewayUrl = embedContainer.dataset.gatewayUrl || '';
+        var clientKey  = embedContainer.dataset.clientKey  || '';
+
+        // Guard: refuse to connect if the key is the deploy-time placeholder.
+        if (!clientKey || clientKey.indexOf('[PENDIENTE') === 0) {
+          liveSection.hidden = false;
+          liveSection.scrollIntoView({ behavior: 'smooth' });
+          showError();
+          return;
+        }
+
+        widgetLoaded = true;
+        liveSection.hidden = false;
+        liveSection.scrollIntoView({ behavior: 'smooth' });
+
+        // Inject the widget div that the built JS expects.
+        var widgetDiv = document.createElement('div');
+        widgetDiv.id = 'aurion-widget';
+        embedContainer.appendChild(widgetDiv);
+
+        // Inject widget CSS (scoped, self-contained — see apps/widget/src/styles.css).
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'assets/aurion-widget.css';
+        document.head.appendChild(link);
+
+        // Inject widget JS as an ES module; after it runs the setup form exists.
+        var script = document.createElement('script');
+        script.type = 'module';
+        script.src = 'assets/aurion-widget.js';
+        script.onerror = function () { showError(); };
+        script.onload = function () {
+          // The widget renders its setup form synchronously during module
+          // evaluation. Give the microtask queue one tick to flush, then
+          // programmatically fill and submit the form.
+          setTimeout(function () {
+            var form = widgetDiv.querySelector('.aw-setup');
+            if (!form) { showError(); return; }
+
+            var urlInput = form.querySelector('input[name="url"]');
+            var keyInput = form.querySelector('input[name="key"]');
+            if (!urlInput || !keyInput) { showError(); return; }
+
+            urlInput.value = gatewayUrl;
+            keyInput.value = clientKey;
+
+            // Dispatch native input events so any validators run.
+            urlInput.dispatchEvent(new Event('input'));
+            keyInput.dispatchEvent(new Event('input'));
+
+            // Submit the form — the widget's submit handler connects the WS.
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          }, 0);
+        };
+        document.body.appendChild(script);
+      }
+
+      if (ctaBtn) {
+        ctaBtn.addEventListener('click', initWidget);
+      }
+    }());
   </script>
 </body>
 </html>
