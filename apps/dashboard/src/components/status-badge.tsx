@@ -25,6 +25,9 @@ const TONE: Record<string, 'ok' | 'warn' | 'danger'> = {
   allowed: 'ok',
   succeeded: 'ok',
   denied: 'danger',
+  // operator readiness
+  configured: 'ok',
+  missing: 'warn',
 };
 
 export function StatusBadge({ status }: { status: string }): ReactNode {

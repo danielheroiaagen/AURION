@@ -7,6 +7,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/dashboard/package.json apps/dashboard/
 COPY apps/voice-gateway/package.json apps/voice-gateway/
 COPY apps/hermes-receiver/package.json apps/hermes-receiver/
+RUN npm install -g npm@11
 RUN npm ci
 COPY apps/dashboard ./apps/dashboard
 # OIDC sign-in (ADR-021/ADR-033): Vite bakes these PUBLIC values into the
