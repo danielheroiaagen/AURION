@@ -94,7 +94,31 @@ export function OverviewPage(): ReactNode {
             <Kpi label="awaiting approval" value={metrics.approvals_pending} />
           </div>
 
-          <div className="flex gap-4">
+          <div className="card operator-focus">
+            <div>
+              <h2>Operator focus</h2>
+              <p className="muted">
+                Triage what can block customer trust: pending approvals, failed sessions, and
+                failed actions.
+              </p>
+            </div>
+            <div className="operator-focus-grid">
+              <div>
+                <span className="muted">pending approvals</span>
+                <strong>{metrics.approvals_pending}</strong>
+              </div>
+              <div>
+                <span className="muted">failed sessions</span>
+                <strong>{metrics.sessions.by_status.failed ?? 0}</strong>
+              </div>
+              <div>
+                <span className="muted">failed actions</span>
+                <strong>{metrics.actions.by_status.failed ?? 0}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="overview-grid">
             <div className="card flex-1">
               <h2 className="mt-0 text-[1rem]">Sessions by status</h2>
               <Bars data={metrics.sessions.by_status} />

@@ -6,6 +6,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/dashboard/package.json apps/dashboard/
 COPY apps/voice-gateway/package.json apps/voice-gateway/
 COPY apps/hermes-receiver/package.json apps/hermes-receiver/
+RUN npm install -g npm@11
 RUN npm ci
 COPY apps/voice-gateway ./apps/voice-gateway
 RUN npm --workspace @aurion/voice-gateway run build && npm prune --omit=dev

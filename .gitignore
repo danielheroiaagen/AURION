@@ -47,3 +47,6 @@ Thumbs.db
 *.db
 *.dump
 *.bak
+
+# Demo video tooling (local-only: generated media, fixture tokens, deps)
+tools/demo-video/

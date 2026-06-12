@@ -8,6 +8,12 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 
 ### Added
 
+- ADR-038 / Phase 29 professional product polish: root `npm run lint` and
+  `npm run typecheck` are real quality gates, CI runs both root gates, README
+  now describes the implemented product, dashboard gains mobile/table overflow
+  guards plus operator readiness/focus cues, and the landing has a structured
+  GDPR-honest demo request form. Docker build stages now pin npm 11 before
+  `npm ci`, matching the repository engine contract.
 - Professional repository governance files for Git/GitHub readiness.
 - Phase 0 GitHub readiness plan.
 - ADR for the initial Voice Agent SaaS Core MVP.

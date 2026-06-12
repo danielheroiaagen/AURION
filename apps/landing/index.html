@@ -79,10 +79,37 @@
         <div class="cta-band">
           <h2>Reserva una demostración gratuita</h2>
           <p>Te enseñamos AURION funcionando con un caso real de tu sector en 15 minutos. Sin compromiso.</p>
-          <div class="cta-row" style="justify-content:center">
-            <a href="mailto:hola@inteligenciaartificial.pw?subject=Quiero%20una%20demo%20de%20AURION" class="btn">Pedir demo por email</a>
-            <a href="#" class="btn ghost" data-wa>Pedir demo por WhatsApp</a>
-          </div>
+          <form id="demo-form" class="demo-form" data-lead-form>
+            <div>
+              <label for="lead-name">Nombre</label>
+              <input id="lead-name" name="name" autocomplete="name" required />
+            </div>
+            <div>
+              <label for="lead-company">Empresa</label>
+              <input id="lead-company" name="company" autocomplete="organization" required />
+            </div>
+            <div>
+              <label for="lead-email">Email</label>
+              <input id="lead-email" name="email" type="email" autocomplete="email" required />
+            </div>
+            <div>
+              <label for="lead-phone">Teléfono</label>
+              <input id="lead-phone" name="phone" autocomplete="tel" />
+            </div>
+            <div class="full">
+              <label for="lead-message">Qué quieres automatizar</label>
+              <textarea id="lead-message" name="message" rows="4" placeholder="Ejemplo: llamadas de reservas, incidencias, citas o leads"></textarea>
+            </div>
+            <div class="demo-actions full">
+              <button type="submit" class="btn">Preparar solicitud</button>
+              <a href="#" class="btn ghost" data-wa>Pedir demo por WhatsApp</a>
+            </div>
+            <p class="form-note full">
+              Al enviar la solicitud se abrirá tu cliente de email con los datos preparados.
+              No cargamos medición ni píxeles sin tu consentimiento de cookies.
+            </p>
+            <p class="form-status full" id="demo-status" aria-live="polite"></p>
+          </form>
         </div>
       </div>
     </section>
@@ -120,7 +147,33 @@
     // WhatsApp comercial (formato internacional sin +).
     var WA = '34651865093';
     var wa = document.querySelector('[data-wa]');
-    if (wa) wa.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola, quiero una demo de AURION');
+    var leadForm = document.querySelector('[data-lead-form]');
+    function leadText() {
+      if (!leadForm) return 'Hola, quiero una demo de AURION';
+      var data = new FormData(leadForm);
+      return [
+        'Demo request ready:',
+        'Nombre: ' + (data.get('name') || ''),
+        'Empresa: ' + (data.get('company') || ''),
+        'Email: ' + (data.get('email') || ''),
+        'Teléfono: ' + (data.get('phone') || ''),
+        'Necesidad: ' + (data.get('message') || '')
+      ].join('\n');
+    }
+    function updateWhatsApp() {
+      if (wa) wa.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent(leadText());
+    }
+    if (leadForm) {
+      leadForm.addEventListener('input', updateWhatsApp);
+      leadForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var status = document.getElementById('demo-status');
+        if (status) status.textContent = 'Demo request ready. Opening your email client...';
+        window.location.href = 'mailto:hola@inteligenciaartificial.pw?subject=' +
+          encodeURIComponent('Quiero una demo de AURION') + '&body=' + encodeURIComponent(leadText());
+      });
+    }
+    updateWhatsApp();
   </script>
 </body>
 </html>

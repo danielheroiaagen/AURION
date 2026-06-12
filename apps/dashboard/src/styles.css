@@ -308,6 +308,7 @@
 
   /* Overview metric tiles (shadcn-era addition; used by overview.tsx). */
   .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.9rem; margin-bottom: 1rem; }
+  .overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
   .metric-value {
     font-size: 1.65rem;
     font-weight: 700;
@@ -316,5 +317,57 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  .operator-focus { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .operator-focus h2, .readiness-card h2 { margin: 0 0 0.25rem; font-size: 1rem; }
+  .operator-focus-grid { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 0.75rem; min-width: 420px; }
+  .operator-focus-grid > div {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: rgba(7, 10, 18, 0.55);
+    padding: 0.75rem;
+  }
+  .operator-focus-grid strong { display: block; margin-top: 0.25rem; font-size: 1.25rem; }
+
+  .readiness-list { display: grid; gap: 0.7rem; margin-top: 1rem; }
+  .readiness-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: rgba(7, 10, 18, 0.45);
+    padding: 0.85rem;
+  }
+  .readiness-item p { margin: 0.2rem 0 0.4rem; }
+  .readiness-item code { color: var(--color-muted-foreground); font-family: var(--font-mono); font-size: 0.72rem; }
+
+  @media (max-width: 860px) {
+    .shell { display: grid; grid-template-columns: 1fr; }
+    .sidebar {
+      position: sticky;
+      z-index: 30;
+      height: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--color-border);
+      padding: 0.85rem;
+    }
+    .sidebar .brand { margin-bottom: 0.75rem; }
+    .sidebar nav { flex-direction: row; overflow-x: auto; padding-bottom: 0.25rem; }
+    .sidebar nav a { white-space: nowrap; }
+    .sidebar .whoami { display: none; }
+    .main { max-width: none; padding: 1.25rem; }
+    .card { overflow-x: auto; }
+    table { min-width: 720px; }
+    .overview-grid { grid-template-columns: 1fr; }
+    .operator-focus { align-items: stretch; flex-direction: column; }
+    .operator-focus-grid { grid-template-columns: 1fr; min-width: 0; }
+    .form-row { flex-direction: column; }
+    .toolbar { align-items: stretch; }
+    .toolbar > div { min-width: 0; flex: 1 1 170px; }
+    .login { padding: 1rem; }
+    .login .card { width: min(100%, 480px); }
+    .readiness-item { flex-direction: column; }
   }
 }
