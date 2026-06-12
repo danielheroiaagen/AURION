@@ -50,6 +50,8 @@ for (const route of config.telephony?.routes ?? []) {
     api: tenantApi,
     greeting: route.greeting,
     lang: route.lang,
+    // Per-tenant brand voice (ADR-038); empty → the gateway default voice.
+    voice: route.voice || undefined,
   });
   phoneToKey.set(phoneDigits(route.phone), route.clientKey);
 }

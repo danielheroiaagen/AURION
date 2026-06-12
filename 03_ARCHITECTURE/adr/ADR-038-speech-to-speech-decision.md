@@ -42,8 +42,13 @@ Audio Pro**, all of it inside the existing seam, none of it requiring S2S:
    then the real reply follows. `TELEPHONY_BACKCHANNEL_MS` (default 1500,
    `0` disables). The reply text is still the source of truth and always
    follows the filler — the filler is never an answer and never an action.
-2. **Brand voice & persona consistency** — one named, tuned voice per
-   tenant tier (own ADR amends ADR-026/ADR-029 voice selection).
+2. **Brand voice per tenant** (shipped here). The `SpeechSynthesisPort`
+   takes an optional `voice` override; each ADR-035 telephony route carries
+   its own `voice`, so every client answers in its own brand voice on one
+   shared synthesizer. Empty → the gateway default `TTS_VOICE`. The
+   greeting cache is now keyed by (voice, text) so it never replays one
+   tenant's audio for another. Persona (per-tenant system prompt/tone) is a
+   separate brain increment, not bundled here.
 3. **Semantic end-of-turn** — replace pure energy-VAD segmentation with
    meaning-aware turn closure so the agent neither cuts the caller off nor
    leaves a gap (own ADR amends ADR-032 VAD).

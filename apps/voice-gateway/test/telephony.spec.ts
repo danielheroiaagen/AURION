@@ -806,6 +806,65 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     await phone.closed;
   });
 
+  it('answers each tenant in its own brand voice, the default voice otherwise (ADR-038)', async () => {
+    const spokenVoices: Array<string | undefined> = [];
+    const KEY_B = 'tenant-b-key-'.padEnd(32, 'b');
+    const stt2 = fakeStreamingTranscriber();
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: {
+        clientKeys: [CLIENT_KEY, KEY_B],
+        api: fakeApi(),
+        routes: new Map([
+          [KEY_B, { api: fakeApi(), greeting: 'Hola desde B.', lang: 'es-ES', voice: 'verse' }],
+        ]),
+        brain: new ScriptedBrain(),
+        transcriber: stt2.port,
+        synthesizer: {
+          synthesize: async (_text, voice) => {
+            spokenVoices.push(voice);
+            return { audio: PCM_REPLY, mimeType: 'audio/pcm;rate=24000' };
+          },
+        },
+        telephony: {
+          greeting: 'Hola desde A.',
+          lang: 'es-ES',
+          silenceMs: 600,
+          twilioAuthToken: 'twilio-token-testtesttest',
+          publicUrl: 'https://aurion.test',
+          sttModel: '',
+          maxConcurrentCalls: 4,
+          maxCallsPerDay: 200,
+          backchannelMs: 0,
+          routes: [],
+        },
+      },
+      log: () => undefined,
+    });
+    const port = (server.address() as { port: number }).port;
+
+    // Tenant B's number greets in tenant B's configured brand voice.
+    const phoneB = await connectPhone(port);
+    phoneB.send({
+      event: 'start',
+      start: { streamSid: 'MZb', callSid: 'CAb', customParameters: { key: KEY_B } },
+    });
+    await phoneB.next();
+    await vi.waitFor(() => expect(spokenVoices).toContain('verse'));
+
+    // The single-tenant default line passes no override → the default voice.
+    const phoneA = await connectPhone(port);
+    phoneA.send(startEvent(CLIENT_KEY));
+    await phoneA.next();
+    await vi.waitFor(() => expect(spokenVoices).toContain(undefined));
+  });
+
   it('rejects calls without a valid key before any audio is processed', async () => {
     const stt = fakeStreamingTranscriber();
     const port = boot(stt.port);

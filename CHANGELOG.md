@@ -21,6 +21,13 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   (gpt-5.4-mini ≈ 0.9 s) never trigger it. Two new gateway Vitest cases
   (slow turn fills then replies; fast turn does not) and a phase-29
   contract suite.
+- Phase 29 Audio Pro, brand voice per tenant (ADR-038): `SpeechSynthesisPort`
+  takes an optional `voice` override and each multi-tenant telephony route
+  (ADR-035) carries its own `voice`, so every client answers in its own
+  brand voice on one shared synthesizer — empty falls back to the default
+  `TTS_VOICE`. The telephony greeting cache is now keyed by (voice, text)
+  so it never replays one tenant's audio for another. OpenAI and HeyGen
+  adapters honor the override; new unit, call-flow and contract tests.
 - Professional repository governance files for Git/GitHub readiness.
 - Phase 0 GitHub readiness plan.
 - ADR for the initial Voice Agent SaaS Core MVP.

@@ -40,6 +40,7 @@ describe('tenant routes config (ADR-035, fail closed)', () => {
           phone: '+34911111111',
           clientKey: 'tenant-uno-client-key-aaaaaaaaaa',
           greeting: 'Bienvenido a la Clínica Uno.',
+          voice: 'marin',
           oidcClientId: 'aurion-vg-clinica-uno',
           oidcClientSecret: 'clinica-uno-secret-xx',
         },
@@ -49,6 +50,8 @@ describe('tenant routes config (ADR-035, fail closed)', () => {
     expect(route.phone).toBe('+34911111111');
     expect(route.greeting).toBe('Bienvenido a la Clínica Uno.');
     expect(route.lang).toBe('es-ES');
+    // Per-tenant brand voice (ADR-038); empty string falls back to the default.
+    expect(route.voice).toBe('marin');
     expect(route.oidc.clientId).toBe('aurion-vg-clinica-uno');
     // Token URL inherited from the gateway's own OIDC config.
     expect(route.oidc.tokenUrl).toBe('https://idp.test/realms/aurion/token');

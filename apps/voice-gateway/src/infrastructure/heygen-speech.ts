@@ -18,7 +18,7 @@ export class HeyGenSpeechSynthesizer implements SpeechSynthesisPort {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async synthesize(text: string): Promise<SynthesizedSpeech> {
+  async synthesize(text: string, voice?: string): Promise<SynthesizedSpeech> {
     const input = text.length > this.config.maxTextChars
       ? text.slice(0, this.config.maxTextChars)
       : text;
@@ -35,7 +35,7 @@ export class HeyGenSpeechSynthesizer implements SpeechSynthesisPort {
         },
         body: JSON.stringify({
           text: input,
-          voice_id: this.config.voice,
+          voice_id: voice || this.config.voice,
           // speed 1.15 measured live on the operator clone: livelier AND
           // ~40% faster to synthesize; explicit language fixes prosody.
           ...(this.config.speed !== 1 ? { speed: this.config.speed } : {}),

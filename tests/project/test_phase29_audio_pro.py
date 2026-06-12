@@ -61,5 +61,31 @@ class BackchannelTests(unittest.TestCase):
         self.assertIn("does not fill a fast turn", spec)
 
 
+class BrandVoiceTests(unittest.TestCase):
+    def test_synthesis_port_accepts_a_voice_override(self):
+        ports = read(GATEWAY / "src" / "application" / "ports.ts")
+        self.assertIn("synthesize(text: string, voice?: string)", ports)
+        for adapter in ("openai-speech.ts", "heygen-speech.ts"):
+            text = read(GATEWAY / "src" / "infrastructure" / adapter)
+            self.assertIn("voice || this.config.voice", text)
+
+    def test_routes_carry_a_per_tenant_voice(self):
+        config = read(GATEWAY / "src" / "config.ts")
+        self.assertIn("readonly voice: string", config)
+        self.assertIn("route.voice", config)
+        main = read(GATEWAY / "src" / "main.ts")
+        self.assertIn("voice: route.voice", main)
+
+    def test_greeting_cache_is_keyed_by_voice_not_just_synthesizer(self):
+        bridge = read(GATEWAY / "src" / "infrastructure" / "twilio-bridge.ts")
+        self.assertIn("greetingKey", bridge)
+        # The cache value is now a per-(voice,text) map, not a single entry.
+        self.assertIn("Map<string, Buffer>", bridge)
+
+    def test_brand_voice_has_call_flow_coverage(self):
+        spec = read(GATEWAY / "test" / "telephony.spec.ts")
+        self.assertIn("its own brand voice", spec)
+
+
 if __name__ == "__main__":
     unittest.main()

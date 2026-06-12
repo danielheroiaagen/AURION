@@ -80,6 +80,9 @@ export interface TenantRoute {
   readonly clientKey: string;
   readonly greeting: string;
   readonly lang: string;
+  /** Tenant's own brand voice (ADR-038 Audio Pro); empty → the gateway's
+   * default TTS_VOICE. A provider voice id (OpenAI name or HeyGen voice_id). */
+  readonly voice: string;
   /** Tenant's own client_credentials identity (its tenant_id is in the token). */
   readonly oidc: OidcMachineConfig;
 }
@@ -119,8 +122,10 @@ function parseNonNegativeInt(value: string | undefined, fallback: number): numbe
 
 /**
  * Parse TELEPHONY_TENANT_ROUTES (ADR-035): a JSON array of
- * { phone, clientKey, greeting, lang?, oidcClientId, oidcClientSecret,
- *   oidcTokenUrl? }. Fail-closed: malformed JSON or an incomplete route
+ * { phone, clientKey, greeting, lang?, voice?, oidcClientId,
+ *   oidcClientSecret, oidcTokenUrl? }. `voice` is the tenant's brand voice
+ *   (ADR-038); empty → the gateway default. Fail-closed: malformed JSON or
+ *   an incomplete route
  * aborts boot — a misconfigured tenant must never silently fall back to
  * another tenant's identity. The token URL defaults to the gateway's own
  * OIDC token URL (the same realm).
@@ -181,6 +186,7 @@ function parseTenantRoutes(
         (typeof route.greeting === 'string' ? route.greeting.trim() : '') ||
         'Hola, soy un asistente virtual de inteligencia artificial. ¿En qué puedo ayudarte?',
       lang: (typeof route.lang === 'string' ? route.lang.trim() : '') || 'es-ES',
+      voice: typeof route.voice === 'string' ? route.voice.trim() : '',
       oidc: {
         tokenUrl: tokenUrl.replace(/\/+$/, ''),
         clientId,

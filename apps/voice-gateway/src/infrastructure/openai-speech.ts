@@ -26,7 +26,7 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
     private readonly format: SpeechFormat = 'mp3',
   ) {}
 
-  async synthesize(text: string): Promise<SynthesizedSpeech> {
+  async synthesize(text: string, voice?: string): Promise<SynthesizedSpeech> {
     // The cap bounds per-reply provider cost; a truncated voice line still
     // ends on the full text the caller can read.
     const input = text.length > this.config.maxTextChars
@@ -45,7 +45,7 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
         },
         body: JSON.stringify({
           model: this.config.model,
-          voice: this.config.voice,
+          voice: voice || this.config.voice,
           input,
           response_format: this.format,
           ...(this.config.speed !== 1 ? { speed: this.config.speed } : {}),
@@ -78,7 +78,11 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
 
   /** Streaming synthesis (ADR-032, pcm format only): chunks reach `onAudio`
    * as the provider renders them — the phone starts speaking ~4x sooner. */
-  async synthesizeStream(text: string, onAudio: (chunk: Buffer) => void): Promise<void> {
+  async synthesizeStream(
+    text: string,
+    onAudio: (chunk: Buffer) => void,
+    voice?: string,
+  ): Promise<void> {
     if (this.format !== 'pcm') {
       throw new SpeechSynthesisError('Streaming synthesis is only wired for the pcm format.');
     }
@@ -97,7 +101,7 @@ export class OpenAiSpeechSynthesizer implements SpeechSynthesisPort {
         },
         body: JSON.stringify({
           model: this.config.model,
-          voice: this.config.voice,
+          voice: voice || this.config.voice,
           input,
           response_format: 'pcm',
           ...(this.config.speed !== 1 ? { speed: this.config.speed } : {}),

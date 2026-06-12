@@ -24,9 +24,12 @@ approval model depends on.
    brain has not answered within `TELEPHONY_BACKCHANNEL_MS` (default 1500,
    `0` disables); the real reply text follows and stays the source of
    truth. Fast turns never trigger it.
-2. **Brand voice & persona (planned, own ADR).** One named, tuned voice
-   per tenant tier with a consistent persona; amends ADR-026/ADR-029 voice
-   selection. Recognizable voice = brand.
+2. **Brand voice per tenant (shipped, ADR-038).** `SpeechSynthesisPort`
+   takes an optional `voice` override; each ADR-035 route carries its own
+   `voice`, so every client answers in its own brand voice on one shared
+   synthesizer (empty → default `TTS_VOICE`). The greeting cache is keyed by
+   (voice, text). Per-tenant persona (system prompt/tone) is a later brain
+   increment.
 3. **Semantic end-of-turn (planned, own ADR).** Replace pure energy-VAD
    segmentation with meaning-aware turn closure so the agent neither cuts
    the caller off nor leaves a gap; amends ADR-032 VAD.
@@ -39,7 +42,8 @@ approval model depends on.
 - [x] A genuinely slow turn fills the silence with a language-matched
       filler, then delivers the real reply; fast turns are untouched and
       every existing call test stays green.
-- [ ] Each tenant tier answers in its configured brand voice (unit 2).
+- [x] Each tenant answers in its configured brand voice; absent → default,
+      and the greeting cache never crosses voices (unit 2).
 - [ ] Turn closure is meaning-aware, measured on live calls (unit 3).
 - [ ] Caller interruptions never produce a ghost turn (unit 4).
 
