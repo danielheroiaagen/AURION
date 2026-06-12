@@ -51,8 +51,12 @@ class LatencyLeversTests(unittest.TestCase):
         self.assertIn("TELEPHONY_STT_MODEL", config)
 
     def test_echo_guard_never_turns_the_agents_own_voice(self):
+        # The ADR-032 echo guard was extracted into its own module by the
+        # ADR-038 barge-in v2 work; the capability lives on, just relocated.
+        guard = read(GATEWAY / "src" / "infrastructure" / "echo-guard.ts")
+        self.assertIn("normalizeForEcho", guard)
         bridge = read(GATEWAY / "src" / "infrastructure" / "twilio-bridge.ts")
-        self.assertIn("normalizeForEcho", bridge)
+        self.assertIn("echoGuard", bridge)
         self.assertIn("echo", bridge)
 
     def test_plumbing_documents_the_new_contract(self):

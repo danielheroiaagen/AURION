@@ -38,6 +38,17 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   the soft window, and empty/unknown text commits at the soft window so
   there is no added latency or regression. New unit, two call-flow and
   contract tests.
+- Phase 29 Audio Pro, barge-in v2 (ADR-038) — completes the phase. Two
+  hardenings over v1's `clear`: (a) when the caller starts speaking the
+  bridge stops emitting frames at once (`playbackInterrupted`) AND flushes
+  Twilio's buffer, so the agent never keeps talking over the caller while
+  the in-flight reply finishes rendering; (b) a new windowed `EchoGuard`
+  (a bounded set of recent agent lines, substring match plus a high-overlap
+  rule for STT-mangled tails) replaces v1's single-line guard, so a
+  barge-in tail, a filler, or the greeting never becomes a ghost turn while
+  a real caller turn sharing a word or two survives. New EchoGuard unit
+  tests, a call-flow test asserting the in-flight reply stops on barge-in,
+  and contract coverage.
 - Professional repository governance files for Git/GitHub readiness.
 - Phase 0 GitHub readiness plan.
 - ADR for the initial Voice Agent SaaS Core MVP.

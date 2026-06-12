@@ -105,5 +105,24 @@ class SemanticEndpointingTests(unittest.TestCase):
         self.assertIn("commits a finished sentence promptly", spec)
 
 
+class BargeInV2Tests(unittest.TestCase):
+    def test_an_echo_guard_module_with_a_recent_line_window(self):
+        guard = read(GATEWAY / "src" / "infrastructure" / "echo-guard.ts")
+        for marker in ["class EchoGuard", "remember", "isEcho", "ECHO_WINDOW"]:
+            self.assertIn(marker, guard)
+
+    def test_barge_in_stops_the_in_flight_reply(self):
+        bridge = read(GATEWAY / "src" / "infrastructure" / "twilio-bridge.ts")
+        self.assertIn("playbackInterrupted", bridge)
+        self.assertIn("EchoGuard", bridge)
+        # The single-line guard is gone — replaced by the windowed guard.
+        self.assertNotIn("lastSpoken", bridge)
+
+    def test_barge_in_v2_has_unit_and_call_flow_coverage(self):
+        spec = read(GATEWAY / "test" / "telephony.spec.ts")
+        self.assertIn("EchoGuard (barge-in v2", spec)
+        self.assertIn("stops emitting frames at once", spec)
+
+
 if __name__ == "__main__":
     unittest.main()

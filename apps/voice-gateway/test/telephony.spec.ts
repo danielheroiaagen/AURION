@@ -12,6 +12,7 @@ import type {
 } from '../src/application/ports.js';
 import { loadGatewayConfig } from '../src/config.js';
 import { linearToUlaw, pcm16ToUlaw8k, ulawFrames, ulawToLinear } from '../src/infrastructure/audio.js';
+import { EchoGuard } from '../src/infrastructure/echo-guard.js';
 import {
   looksLikeCompleteTurn,
   OpenAiRealtimeTranscriber,
@@ -433,6 +434,41 @@ describe('OpenAiRealtimeTranscriber (ws client, audio/pcmu, ADR-027)', () => {
   });
 });
 
+describe('EchoGuard (barge-in v2, ADR-038)', () => {
+  it('drops an echo of any recent agent line, not just the last one', () => {
+    const guard = new EchoGuard();
+    guard.remember('Un momento, lo reviso.');
+    guard.remember('Tu pedido llega mañana.');
+    // The filler is not the LAST thing said, but its echo is still caught.
+    expect(guard.isEcho('un momento lo reviso')).toBe(true);
+    expect(guard.isEcho('Tu pedido llega mañana')).toBe(true);
+  });
+
+  it('catches a clipped, mangled barge-in tail by word overlap', () => {
+    const guard = new EchoGuard();
+    guard.remember('Tu pedido llega mañana por la tarde.');
+    // STT clipped the tail and dropped a word — overlap still flags it.
+    expect(guard.isEcho('pedido llega mañana')).toBe(true);
+  });
+
+  it('never swallows a real caller turn that merely shares a word', () => {
+    const guard = new EchoGuard();
+    guard.remember('¿Quieres pedir una cita?');
+    expect(guard.isEcho('sí quiero una cita para mañana')).toBe(false);
+    expect(guard.isEcho('hola')).toBe(false);
+    expect(guard.isEcho('')).toBe(false);
+  });
+
+  it('forgets beyond its window — old lines no longer echo', () => {
+    const guard = new EchoGuard(2);
+    guard.remember('Hola, soy AURION.');
+    guard.remember('Un momento.');
+    guard.remember('Tu pedido llega mañana.');
+    expect(guard.isEcho('hola soy aurion')).toBe(false); // evicted
+    expect(guard.isEcho('tu pedido llega mañana')).toBe(true);
+  });
+});
+
 // --- Bridge call flow ---------------------------------------------------------
 
 const CLIENT_KEY = 'k'.repeat(32);
@@ -606,6 +642,83 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     await phone.next(); // greeting
     stt.handlers().onSpeechStarted?.();
     expect(await phone.next()).toEqual({ event: 'clear', streamSid: 'MZ1' });
+  });
+
+  it('barge-in v2: the in-flight reply stops emitting frames at once (ADR-038)', async () => {
+    const stt = fakeStreamingTranscriber();
+    const pcmChunk = Buffer.alloc(960); // → exactly one 160-byte wire frame
+    let releaseTail: () => void = () => undefined;
+    const tailGate = new Promise<void>((resolve) => {
+      releaseTail = resolve;
+    });
+    let calls = 0;
+    let tailEmitted = false;
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: {
+        clientKeys: [CLIENT_KEY],
+        api: fakeApi(),
+        brain: new ScriptedBrain(),
+        transcriber: stt.port,
+        synthesizer: {
+          synthesize: async () => ({ audio: Buffer.alloc(0), mimeType: 'audio/pcm' }),
+          synthesizeStream: async (_text, onAudio) => {
+            calls += 1;
+            if (calls === 1) {
+              onAudio(pcmChunk); // greeting: a single frame, then done
+              return;
+            }
+            onAudio(pcmChunk); // reply frame 1 (heard before the barge-in)
+            await tailGate; // ... caller barges in here ...
+            onAudio(pcmChunk); // reply frame 2 — must be suppressed
+            tailEmitted = true;
+          },
+        },
+        telephony: {
+          greeting: 'Hola, soy AURION.',
+          lang: 'es-ES',
+          silenceMs: 600,
+          twilioAuthToken: 'twilio-token-testtesttest',
+          publicUrl: 'https://aurion.test',
+          sttModel: '',
+          maxConcurrentCalls: 4,
+          maxCallsPerDay: 200,
+          backchannelMs: 0,
+          routes: [],
+        },
+      },
+      log: () => undefined,
+    });
+    const port = (server.address() as { port: number }).port;
+    const events: Array<Record<string, unknown>> = [];
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/twilio`);
+    await new Promise((resolve) => socket.on('open', resolve));
+    socket.on('message', (raw) => events.push(JSON.parse(String(raw))));
+    const mediaCount = (): number => events.filter((e) => e.event === 'media').length;
+
+    socket.send(JSON.stringify(startEvent(CLIENT_KEY)));
+    await vi.waitFor(() => expect(mediaCount()).toBe(1)); // greeting frame
+
+    stt.handlers().onUtterance('necesito ayuda con un problema de mi pedido');
+    await vi.waitFor(() => expect(mediaCount()).toBe(2)); // reply frame 1
+
+    // The caller barges in while reply frame 2 is still pending.
+    stt.handlers().onSpeechStarted?.();
+    await vi.waitFor(() => expect(events.some((e) => e.event === 'clear')).toBe(true));
+
+    // Release the tail: the synthesizer DOES emit frame 2, but the bridge
+    // must not put it on the wire — we never talk over the caller.
+    releaseTail();
+    await vi.waitFor(() => expect(tailEmitted).toBe(true));
+    expect(mediaCount()).toBe(2);
+
+    socket.close();
   });
 
   // --- Backchannel on slow turns (ADR-038, Fase 29 Audio Pro) ---------------

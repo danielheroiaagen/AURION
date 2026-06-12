@@ -59,8 +59,17 @@ Audio Pro**, all of it inside the existing seam, none of it requiring S2S:
    the soft window. Empty/unknown text commits at the soft window — no
    added latency, no regression. The multiplier is a calibrated constant
    (ADR-032 precedent); it becomes config only if a line proves it wrong.
-4. **Barge-in v2** — echo-aware interruption; the line stops cleanly and
-   does not transcribe the tail of its own voice as a turn.
+4. **Barge-in v2** (shipped here). Two hardenings over v1's `clear`. (a) On
+   caller speech the bridge stops emitting frames at once
+   (`playbackInterrupted`) AND flushes Twilio's buffer, so the agent never
+   keeps talking over the caller while the in-flight reply finishes
+   rendering. (b) A multi-line `EchoGuard` (a bounded window of recent agent
+   lines, substring match plus a high-overlap rule for STT-mangled tails)
+   replaces v1's single-line guard — so a barge-in tail, a filler, or the
+   greeting never becomes a ghost turn, while a real caller turn that shares
+   a word or two survives.
+
+With unit 4, Phase 29 (Audio Pro) is complete.
 
 ## Context
 

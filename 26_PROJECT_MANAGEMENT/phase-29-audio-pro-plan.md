@@ -3,7 +3,7 @@ project: AURION
 document: Phase 29 Audio Pro Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: in-progress
+status: closed
 created_at: 2026-06-12
 related: ADR-026, ADR-029, ADR-032, ADR-038
 ---
@@ -37,9 +37,12 @@ approval model depends on.
    A mid-sentence pause on a hanging word is held; a finished sentence
    still commits promptly. Empty text commits at the soft window (no
    regression).
-4. **Barge-in v2 (planned, own ADR).** Echo-aware interruption: the line
-   stops cleanly on caller speech and never transcribes the tail of its
-   own voice as a turn.
+4. **Barge-in v2 (shipped, ADR-038).** On caller speech the bridge stops
+   emitting frames at once (`playbackInterrupted`) AND flushes Twilio's
+   buffer — the agent never keeps talking over the caller. A multi-line
+   `EchoGuard` (recent-agent-line window, substring + high-overlap rule)
+   replaces v1's single-line guard, so a barge-in tail, filler or greeting
+   never becomes a ghost turn while a real caller turn survives.
 
 ## Acceptance criteria
 
@@ -50,7 +53,10 @@ approval model depends on.
       and the greeting cache never crosses voices (unit 2).
 - [x] Turn closure is meaning-aware: a mid-sentence pause is held to the
       hard window, a finished sentence commits at the soft window (unit 3).
-- [ ] Caller interruptions never produce a ghost turn (unit 4).
+- [x] A caller interruption stops the in-flight reply immediately and its
+      echoed tail never produces a ghost turn (unit 4).
+
+Phase 29 (Audio Pro) is complete; the next phase is Phase 30 (Call QA).
 
 ## Out of scope
 
