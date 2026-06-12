@@ -8,6 +8,8 @@ export type BrainMode = 'scripted' | 'llm';
 export type SttMode = 'off' | 'openai';
 export type TtsMode = 'off' | 'openai' | 'heygen';
 export type TelephonyMode = 'off' | 'twilio';
+/** Phase-30: whether to generate a post-call AI summary after each session. */
+export type PostCallSummaryMode = 'on' | 'off';
 
 export interface LlmConfig {
   readonly apiUrl: string;
@@ -96,6 +98,12 @@ export interface GatewayConfig {
   readonly tts: TtsConfig | null;
   readonly telephonyMode: TelephonyMode;
   readonly telephony: TelephonyConfig | null;
+  /**
+   * Phase-30: post-call AI summary generation mode.
+   * Defaults to 'on' when LLM is configured, 'off' otherwise.
+   * Set POST_CALL_SUMMARY=off to disable even when LLM is available.
+   */
+  readonly postCallSummary: PostCallSummaryMode;
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -358,6 +366,21 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     };
   }
 
+  // Phase-30: POST_CALL_SUMMARY defaults to 'on' when LLM is configured
+  // (so existing deployments with a valid LLM_API_KEY get the feature
+  // automatically) and to 'off' when there is no LLM (scripted mode or
+  // llm mode without a key would fail anyway, but we guard defensively).
+  const postCallSummaryRaw = (env.POST_CALL_SUMMARY ?? '').trim().toLowerCase();
+  let postCallSummary: PostCallSummaryMode;
+  if (postCallSummaryRaw === 'off') {
+    postCallSummary = 'off';
+  } else if (postCallSummaryRaw === 'on') {
+    postCallSummary = 'on';
+  } else {
+    // Default: on when LLM is configured, off otherwise.
+    postCallSummary = llm ? 'on' : 'off';
+  }
+
   return {
     port: parsePositiveInt(env.PORT, 8080),
     apiUrl: apiUrl.replace(/\/+$/, ''),
@@ -372,5 +395,6 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     tts,
     telephonyMode,
     telephony,
+    postCallSummary,
   };
 }

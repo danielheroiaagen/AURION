@@ -8,6 +8,15 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 
 ### Added
 
+- ADR-039 / Phase 30 post-call intelligence: asynchronous AI summary and
+  structured insights (intent, lead quality, action items, caller name) generated
+  after each completed voice session. Caller phone number captured from Twilio
+  `From` and stored at session creation. New `PATCH /voice-sessions/:id/ai-summary`
+  API endpoint (terminal sessions only, idempotent). Dashboard session list gains
+  a Caller column and row links; new `/sessions/:id` detail page with AI summary
+  card, insights with lead quality badge, action items, and collapsed raw transcript
+  notes. All new fields are nullable and additive; `POST_CALL_SUMMARY` env var
+  defaults `on` when LLM is configured.
 - ADR-038 / Phase 29 professional product polish: root `npm run lint` and
   `npm run typecheck` are real quality gates, CI runs both root gates, README
   now describes the implemented product, dashboard gains mobile/table overflow

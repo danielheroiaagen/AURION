@@ -369,5 +369,84 @@
     .login { padding: 1rem; }
     .login .card { width: min(100%, 480px); }
     .readiness-item { flex-direction: column; }
+    .session-detail-meta { flex-direction: column; gap: 0.75rem; }
+    .session-detail-insights { gap: 0.75rem; }
   }
+}
+
+/* ---- Session detail (Phase-30, ADR-039) --------------------------------- */
+@layer components {
+  .session-detail { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .session-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .session-detail-header h1 { margin: 0; }
+
+  .session-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2.5rem;
+  }
+
+  .session-detail-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .session-detail-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
+
+  .session-detail-summary {
+    line-height: 1.7;
+    margin: 0.5rem 0 0;
+    color: var(--color-foreground);
+  }
+
+  .session-detail-insights {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    margin-top: 0.5rem;
+  }
+
+  .session-detail-insight-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .session-detail-insight-row .session-detail-label { min-width: 120px; padding-top: 0.1rem; }
+
+  .session-detail-action-items {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .session-detail-transcript {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--color-muted-foreground);
+    margin: 0.75rem 0 0;
+    line-height: 1.6;
+  }
+
+  details > summary {
+    cursor: pointer;
+    user-select: none;
+  }
+  details > summary:hover { color: var(--color-foreground); }
 }

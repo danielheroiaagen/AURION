@@ -127,7 +127,7 @@ describe('Twilio Media Streams frame parsing (fail closed)', () => {
           },
         }),
       ),
-    ).toEqual({ type: 'start', streamSid: 'MZ1', callSid: 'CA1', key: 'k'.repeat(32) });
+    ).toEqual({ type: 'start', streamSid: 'MZ1', callSid: 'CA1', key: 'k'.repeat(32), caller: null });
     expect(parseTwilioEvent(JSON.stringify({ event: 'media', media: { payload: 'QQ==' } }))).toEqual(
       { type: 'media', payload: 'QQ==' },
     );
@@ -333,6 +333,7 @@ function fakeApi(): AurionApiPort & { closeSession: ReturnType<typeof vi.fn> } {
     requestAction: async () => ({ actionId: 'a-1', status: 'requested', approvalRequired: true }),
     getActionStatus: async () => 'requested',
     closeSession: vi.fn(async () => undefined),
+    patchAiSummary: async () => undefined,
   };
 }
 
@@ -659,8 +660,8 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
   });
 
   it('routes a call to the tenant whose client key it carries (ADR-035)', async () => {
-    const tenantA = { startSession: vi.fn(async () => ({ sessionId: 'A-1' })), listPublishedKnowledge: async () => [], requestAction: async () => ({ actionId: 'a', status: 'requested', approvalRequired: true }), getActionStatus: async () => 'requested', closeSession: async () => undefined };
-    const tenantB = { startSession: vi.fn(async () => ({ sessionId: 'B-1' })), listPublishedKnowledge: async () => [], requestAction: async () => ({ actionId: 'b', status: 'requested', approvalRequired: true }), getActionStatus: async () => 'requested', closeSession: async () => undefined };
+    const tenantA = { startSession: vi.fn(async () => ({ sessionId: 'A-1' })), listPublishedKnowledge: async () => [], requestAction: async () => ({ actionId: 'a', status: 'requested', approvalRequired: true }), getActionStatus: async () => 'requested', closeSession: async () => undefined, patchAiSummary: async () => undefined };
+    const tenantB = { startSession: vi.fn(async () => ({ sessionId: 'B-1' })), listPublishedKnowledge: async () => [], requestAction: async () => ({ actionId: 'b', status: 'requested', approvalRequired: true }), getActionStatus: async () => 'requested', closeSession: async () => undefined, patchAiSummary: async () => undefined };
     const KEY_B = 'tenant-b-key-'.padEnd(32, 'b');
     const stt2 = fakeStreamingTranscriber();
     server?.close();
@@ -696,7 +697,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     const phone = await connectPhone(port);
     phone.send({ event: 'start', start: { streamSid: 'MZb', callSid: 'CAb', customParameters: { key: KEY_B } } });
     await phone.next();
-    await vi.waitFor(() => expect(tenantB.startSession).toHaveBeenCalledWith('tw-CAb'));
+    await vi.waitFor(() => expect(tenantB.startSession).toHaveBeenCalledWith('tw-CAb', null));
     expect(tenantA.startSession).not.toHaveBeenCalled();
     phone.send({ event: 'stop' });
     await phone.closed;

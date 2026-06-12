@@ -20,6 +20,7 @@ import { VoiceSessionsService } from '../application/voice-sessions.service';
 import {
   ChangeVoiceSessionStatusDto,
   ListVoiceSessionsQueryDto,
+  PatchAiSummaryDto,
   StartVoiceSessionDto,
   toVoiceSessionListResponse,
   toVoiceSessionResponse,
@@ -54,6 +55,7 @@ export class VoiceSessionsController {
       actor,
       requireActorTenant(actor),
       body.external_session_id ?? null,
+      body.caller_number ?? null,
     );
     response.status(created ? 201 : 200);
     return toVoiceSessionResponse(session);
@@ -100,6 +102,25 @@ export class VoiceSessionsController {
         summary: body.summary,
         outcome: body.outcome,
         transcriptUri: body.transcript_uri,
+      }),
+    );
+  }
+
+  @Patch(':id/ai-summary')
+  @RequirePermission('conversation:write')
+  @ApiOperation({
+    summary:
+      'Write AI-generated summary and insights to a terminal session (idempotent, Phase-30).',
+  })
+  async patchAiSummary(
+    @CurrentActor() actor: AuthenticatedActor,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: PatchAiSummaryDto,
+  ): Promise<VoiceSessionResponse> {
+    return toVoiceSessionResponse(
+      await this.sessions.patchAiSummary(requireActorTenant(actor), id, {
+        aiSummary: body.ai_summary,
+        aiInsights: body.ai_insights,
       }),
     );
   }

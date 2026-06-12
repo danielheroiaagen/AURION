@@ -7,19 +7,24 @@ import type { VoiceSessionsTable } from '../../../database/database.schema';
 import { TenantScopedDb } from '../../../database/tenant-scope';
 import type { VoiceSessionStatus } from '../domain/voice-session';
 import type {
+  AiInsights,
   CloseVoiceSessionFields,
   CreateVoiceSessionInput,
   ListVoiceSessionsInput,
+  PatchAiSummaryFields,
   VoiceSession,
   VoiceSessionsRepositoryPort,
 } from '../application/voice-sessions.repository.port';
 
 /**
  * Kysely adapter for the voice sessions port. Every query runs inside the
- * tenant scope (RLS hard guarantee), and `summary` is encrypted before it
- * reaches the database (ADR-011/ADR-013): a database-only compromise yields
- * ciphertext. The `isEncrypted` check keeps reads tolerant of legacy
- * plaintext rather than failing them.
+ * tenant scope (RLS hard guarantee), and sensitive fields are encrypted before
+ * reaching the database (ADR-011/ADR-013): a database-only compromise yields
+ * ciphertext. The `isEncrypted` check keeps reads tolerant of legacy plaintext
+ * rather than failing them.
+ *
+ * Phase-30 additions: caller_number, ai_summary, ai_insights — all three
+ * encrypted at rest using the same FieldEncryptionService pattern.
  */
 @Injectable()
 export class KyselyVoiceSessionsRepository implements VoiceSessionsRepositoryPort {
@@ -27,6 +32,21 @@ export class KyselyVoiceSessionsRepository implements VoiceSessionsRepositoryPor
     private readonly db: TenantScopedDb,
     private readonly crypto: FieldEncryptionService,
   ) {}
+
+  private decryptField(value: string | null): string | null {
+    if (value === null) return null;
+    return this.crypto.isEncrypted(value) ? this.crypto.decrypt(value) : value;
+  }
+
+  private parseAiInsights(value: string | null): AiInsights | null {
+    const plain = this.decryptField(value);
+    if (!plain) return null;
+    try {
+      return JSON.parse(plain) as AiInsights;
+    } catch {
+      return null;
+    }
+  }
 
   private toSession(row: Selectable<VoiceSessionsTable>): VoiceSession {
     return {
@@ -36,11 +56,11 @@ export class KyselyVoiceSessionsRepository implements VoiceSessionsRepositoryPor
       startedByUserId: row.started_by_user_id,
       status: row.status,
       transcriptUri: row.transcript_uri,
-      summary:
-        row.summary !== null && this.crypto.isEncrypted(row.summary)
-          ? this.crypto.decrypt(row.summary)
-          : row.summary,
+      summary: this.decryptField(row.summary),
       outcome: row.outcome,
+      callerNumber: this.decryptField(row.caller_number ?? null),
+      aiSummary: this.decryptField(row.ai_summary ?? null),
+      aiInsights: this.parseAiInsights(row.ai_insights ?? null),
       startedAt: row.started_at,
       endedAt: row.ended_at,
       createdAt: row.created_at,
@@ -56,6 +76,9 @@ export class KyselyVoiceSessionsRepository implements VoiceSessionsRepositoryPor
           tenant_id: input.tenantId,
           external_session_id: input.externalSessionId,
           started_by_user_id: input.startedByUserId,
+          ...(input.callerNumber
+            ? { caller_number: this.crypto.encrypt(input.callerNumber) }
+            : {}),
         })
         .returningAll()
         .executeTakeFirstOrThrow(),
@@ -139,6 +162,26 @@ export class KyselyVoiceSessionsRepository implements VoiceSessionsRepositoryPor
         })
         .where('id', '=', id)
         .where('status', '=', expectedStatus)
+        .returningAll()
+        .executeTakeFirst(),
+    );
+    return row ? this.toSession(row) : null;
+  }
+
+  async patchAiSummary(
+    tenantId: string,
+    id: string,
+    fields: PatchAiSummaryFields,
+  ): Promise<VoiceSession | null> {
+    const row = await this.db.withTenant(tenantId, (trx) =>
+      trx
+        .updateTable('voice_sessions')
+        .set({
+          ai_summary: this.crypto.encrypt(fields.aiSummary),
+          ai_insights: this.crypto.encrypt(JSON.stringify(fields.aiInsights)),
+          updated_at: sql`now()`,
+        })
+        .where('id', '=', id)
         .returningAll()
         .executeTakeFirst(),
     );

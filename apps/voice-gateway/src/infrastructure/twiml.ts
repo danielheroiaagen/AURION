@@ -53,14 +53,27 @@ export function buildBusyTwiml(lang: string): string {
   ].join('');
 }
 
-/** The ADR-027 connect snippet, generated from current config. */
-export function buildTwiml(publicUrl: string, clientKey: string): string {
+/**
+ * The ADR-027 connect snippet, generated from current config.
+ * When `callerNumber` is provided (Twilio's `From` field, URL-decoded before
+ * calling here), it is forwarded as a `caller` custom parameter so the bridge
+ * can store the originating number at session creation (Phase-30, ADR-039).
+ */
+export function buildTwiml(
+  publicUrl: string,
+  clientKey: string,
+  callerNumber?: string,
+): string {
   const streamUrl = `${publicUrl.replace(/^http/, 'ws').replace(/\/+$/, '')}/twilio`;
+  const callerParam = callerNumber
+    ? `<Parameter name="caller" value="${escapeXml(callerNumber)}" />`
+    : '';
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<Response><Connect>',
     `<Stream url="${escapeXml(streamUrl)}">`,
     `<Parameter name="key" value="${escapeXml(clientKey)}" />`,
+    callerParam,
     '</Stream>',
     '</Connect></Response>',
   ].join('');

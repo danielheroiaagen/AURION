@@ -94,6 +94,13 @@ export function listVoiceSessions(
   return client.get('/voice-sessions', query);
 }
 
+export function getVoiceSession(
+  client: ApiClient,
+  id: string,
+): Promise<VoiceSessionResponse> {
+  return client.get(`/voice-sessions/${id}`);
+}
+
 // --- Controlled actions --------------------------------------------------
 
 export function listActions(

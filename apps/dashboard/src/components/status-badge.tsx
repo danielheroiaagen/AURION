@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { Badge } from './ui/badge';
 
-const TONE: Record<string, 'ok' | 'warn' | 'danger'> = {
+const TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
   // shared
   active: 'ok',
   // actions
@@ -28,6 +28,11 @@ const TONE: Record<string, 'ok' | 'warn' | 'danger'> = {
   // operator readiness
   configured: 'ok',
   missing: 'warn',
+  // post-call lead quality (Phase-30, ADR-039): hot lead = good news (green),
+  // warm = follow-up needed (amber), cold = low-priority (neutral/grey).
+  hot: 'ok',
+  warm: 'warn',
+  cold: 'neutral',
 };
 
 export function StatusBadge({ status }: { status: string }): ReactNode {

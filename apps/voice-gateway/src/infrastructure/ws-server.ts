@@ -10,6 +10,7 @@ import type {
   SpeechSynthesisPort,
   TranscriptionPort,
 } from '../application/ports.js';
+import type { PostCallSummarizer } from '../application/post-call-summarizer.js';
 import { SpeechSynthesisError } from './openai-speech.js';
 import { TranscriptionError } from './openai-transcriber.js';
 import { CallCapacity } from './call-capacity.js';
@@ -44,6 +45,11 @@ export interface WsServerOptions {
   readonly twilio?: TwilioBridgeOptions | null;
   readonly maxAudioBytes?: number;
   readonly log?: (message: string) => void;
+  /**
+   * Post-call summarizer (Phase-30); null disables AI summaries for widget
+   * sessions (widget path sends no caller number — by design).
+   */
+  readonly postCallSummarizer?: PostCallSummarizer | null;
 }
 
 export function startWsServer(options: WsServerOptions): Server {
@@ -57,7 +63,14 @@ export function startWsServer(options: WsServerOptions): Server {
       return;
     }
 
-    const engine = new ConversationEngine(options.api, options.brain);
+    // Widget path: no caller number (the browser widget has no phone context).
+    const engine = new ConversationEngine(
+      options.api,
+      options.brain,
+      undefined,
+      options.postCallSummarizer ?? null,
+      null,
+    );
     let endedGracefully = false;
 
     const send = (event: ServerEvent): void => {
@@ -256,8 +269,14 @@ export function startWsServer(options: WsServerOptions): Server {
         const routedKey = dialed
           ? options.twilio!.phoneToKey?.get(phoneDigits(dialed))
           : undefined;
+        // Phase-30: forward the caller's number into the stream so the bridge
+        // can store it at session creation. `From` is the calling party's
+        // number in Twilio's webhook POST body (URL-decoded, safe to embed).
+        const callerFrom = (params.From ?? '').trim() || undefined;
         response.writeHead(200, { 'content-type': 'text/xml' });
-        response.end(buildTwiml(telephony.publicUrl, routedKey ?? options.clientKeys[0]));
+        response.end(
+          buildTwiml(telephony.publicUrl, routedKey ?? options.clientKeys[0], callerFrom),
+        );
       });
       return;
     }

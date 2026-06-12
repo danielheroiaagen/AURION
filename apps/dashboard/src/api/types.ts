@@ -45,6 +45,16 @@ export interface KnowledgeDocumentResponse {
   updated_at: string;
 }
 
+/** AI insights structure from the post-call summarizer (Phase-30). */
+export interface AiInsights {
+  intent?: string;
+  caller_name?: string | null;
+  callback_number?: string | null;
+  lead_quality?: 'hot' | 'warm' | 'cold' | null;
+  action_items?: string[];
+  language?: string;
+}
+
 export interface VoiceSessionResponse {
   id: string;
   tenant_id: string;
@@ -54,6 +64,12 @@ export interface VoiceSessionResponse {
   transcript_uri: string | null;
   summary: string | null;
   outcome: string | null;
+  /** Caller phone number; null when not captured (Phase-30). */
+  caller_number: string | null;
+  /** AI-generated session summary prose; null until the summarizer runs (Phase-30). */
+  ai_summary: string | null;
+  /** AI-generated structured insights; null until the summarizer runs (Phase-30). */
+  ai_insights: AiInsights | null;
   started_at: string;
   ended_at: string | null;
   created_at: string;

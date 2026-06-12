@@ -123,6 +123,7 @@ function fakeApi(): AurionApiPort {
     requestAction: async () => ({ actionId: 'a-1', status: 'requested', approvalRequired: true }),
     getActionStatus: async () => 'requested',
     closeSession: async () => undefined,
+    patchAiSummary: async () => undefined,
   };
 }
 

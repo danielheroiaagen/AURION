@@ -1,4 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 import { listVoiceSessions } from '../api/resources';
 import { useAuth } from '../auth/auth-context';
@@ -44,6 +45,7 @@ export function SessionsPage(): ReactNode {
           <thead>
             <tr>
               <th>External id</th>
+              <th>Caller</th>
               <th>Status</th>
               <th>Summary</th>
               <th>Outcome</th>
@@ -54,7 +56,12 @@ export function SessionsPage(): ReactNode {
           <tbody>
             {page.items.map((session) => (
               <tr key={session.id}>
-                <td className="muted">{session.external_session_id ?? session.id.slice(0, 8)}</td>
+                <td className="muted">
+                  <Link to={`/sessions/${session.id}`}>
+                    {session.external_session_id ?? session.id.slice(0, 8)}
+                  </Link>
+                </td>
+                <td className="muted">{session.caller_number ?? '—'}</td>
                 <td>
                   <StatusBadge status={session.status} />
                 </td>
@@ -68,7 +75,7 @@ export function SessionsPage(): ReactNode {
             ))}
             {!page.loading && page.items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   No sessions.
                 </td>
               </tr>
