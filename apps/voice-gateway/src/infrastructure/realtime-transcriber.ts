@@ -15,6 +15,54 @@ const SPEECH_THRESHOLD = 350;
 const BYTES_PER_MS = 8;
 /** Never commit less than this much detected speech (provider minimum). */
 const MIN_SPEECH_MS = 120;
+/** Semantic endpointing (ADR-038): a pause this many times the configured
+ * silence ALWAYS closes the turn, even mid-sentence — the caller has clearly
+ * stopped. Below it, the turn closes only when the text reads as finished, so
+ * a natural mid-sentence pause is not cut off. A constant calibrated on
+ * telephone speech; it becomes config only if a line ever proves it wrong. */
+const HARD_SILENCE_MULTIPLIER = 2;
+
+/** Spanish function words that rarely END a sentence — a hanging one signals
+ * the caller is mid-thought (calibrated for the es-ES production line; a few
+ * common English/Portuguese connectors are folded in). */
+const CONTINUATION_CUES = new Set([
+  'y', 'e', 'o', 'u', 'ni', 'que', 'de', 'del', 'a', 'al', 'en', 'con', 'sin',
+  'por', 'para', 'porque', 'pero', 'aunque', 'como', 'cuando', 'si', 'mi', 'mis',
+  'tu', 'tus', 'su', 'sus', 'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
+  'lo', 'le', 'les', 'me', 'te', 'se', 'nos', 'este', 'esta', 'ese', 'esa', 'muy',
+  'mas', 'and', 'or', 'but', 'the', 'my', 'to', 'for', 'of', 'with', 'com', 'meu',
+  'minha',
+]);
+
+/**
+ * Does the in-progress transcript read like a finished turn (ADR-038)? Used
+ * to decide whether a pause at the soft silence window closes the turn.
+ * Empty text returns true: with no signal that the caller is mid-sentence we
+ * do not add latency. Terminal punctuation ends a turn; a trailing comma or a
+ * hanging function word means more is coming.
+ */
+export function looksLikeCompleteTurn(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) {
+    return true;
+  }
+  if (/[.!?…]$/.test(trimmed)) {
+    return true;
+  }
+  if (/,$/.test(trimmed)) {
+    return false;
+  }
+  const lastWord =
+    trimmed
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .pop() ?? '';
+  return !CONTINUATION_CUES.has(lastWord);
+}
 
 function meanAbsAmplitude(ulaw: Buffer): number {
   if (ulaw.length === 0) {
@@ -110,8 +158,18 @@ export class OpenAiRealtimeTranscriber implements StreamingTranscriptionPort {
           }),
         );
 
+        // Running transcript of the current utterance (manual VAD only),
+        // fed by streaming deltas — the only text we have BEFORE we commit,
+        // so the only basis for semantic endpointing (ADR-038).
+        let partialText = '';
+
         socket.on('message', (raw) => {
-          let event: { type?: unknown; transcript?: unknown; error?: { message?: unknown } };
+          let event: {
+            type?: unknown;
+            transcript?: unknown;
+            delta?: unknown;
+            error?: { message?: unknown };
+          };
           try {
             event = JSON.parse(String(raw));
           } catch {
@@ -121,10 +179,16 @@ export class OpenAiRealtimeTranscriber implements StreamingTranscriptionPort {
             case 'input_audio_buffer.speech_started':
               handlers.onSpeechStarted?.();
               break;
+            case 'conversation.item.input_audio_transcription.delta':
+              if (typeof event.delta === 'string') {
+                partialText += event.delta;
+              }
+              break;
             case 'conversation.item.input_audio_transcription.completed':
               handlers.onUtterance(
                 typeof event.transcript === 'string' ? event.transcript.trim() : '',
               );
+              partialText = '';
               break;
             case 'error':
               handlers.onError(
@@ -145,6 +209,7 @@ export class OpenAiRealtimeTranscriber implements StreamingTranscriptionPort {
         let speaking = false;
         let speechMs = 0;
         let silentMs = 0;
+        const hardSilenceMs = this.silenceMs * HARD_SILENCE_MULTIPLIER;
 
         resolve({
           push: (audio: Buffer): void => {
@@ -164,6 +229,7 @@ export class OpenAiRealtimeTranscriber implements StreamingTranscriptionPort {
             if (meanAbsAmplitude(audio) >= SPEECH_THRESHOLD) {
               if (!speaking) {
                 speaking = true;
+                partialText = '';
                 handlers.onSpeechStarted?.();
               }
               speechMs += chunkMs;
@@ -174,10 +240,18 @@ export class OpenAiRealtimeTranscriber implements StreamingTranscriptionPort {
               return;
             }
             silentMs += chunkMs;
-            if (silentMs >= this.silenceMs && speechMs >= MIN_SPEECH_MS) {
+            // Semantic endpointing (ADR-038): a long pause always closes the
+            // turn; a short one closes it only when the text reads finished,
+            // so a mid-sentence pause ("…cambiar mi") is not cut off.
+            const closeTurn =
+              speechMs >= MIN_SPEECH_MS &&
+              (silentMs >= hardSilenceMs ||
+                (silentMs >= this.silenceMs && looksLikeCompleteTurn(partialText)));
+            if (closeTurn) {
               speaking = false;
               speechMs = 0;
               silentMs = 0;
+              partialText = '';
               socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
             }
           },

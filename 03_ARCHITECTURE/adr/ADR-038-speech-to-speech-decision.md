@@ -49,9 +49,16 @@ Audio Pro**, all of it inside the existing seam, none of it requiring S2S:
    greeting cache is now keyed by (voice, text) so it never replays one
    tenant's audio for another. Persona (per-tenant system prompt/tone) is a
    separate brain increment, not bundled here.
-3. **Semantic end-of-turn** — replace pure energy-VAD segmentation with
-   meaning-aware turn closure so the agent neither cuts the caller off nor
-   leaves a gap (own ADR amends ADR-032 VAD).
+3. **Semantic end-of-turn** (shipped here, amends ADR-032 VAD). The
+   manual-VAD path (gpt-realtime-whisper) now closes a turn on a two-tier
+   pause: a *hard* window (2× the configured silence) always closes it,
+   while the *soft* window (the configured silence) closes it only when the
+   running transcript reads as finished (`looksLikeCompleteTurn`). A pause
+   on a hanging function word ("…cambiar mi") is held to the hard window
+   instead of being cut off; a finished sentence still commits promptly at
+   the soft window. Empty/unknown text commits at the soft window — no
+   added latency, no regression. The multiplier is a calibrated constant
+   (ADR-032 precedent); it becomes config only if a line proves it wrong.
 4. **Barge-in v2** — echo-aware interruption; the line stops cleanly and
    does not transcribe the tail of its own voice as a turn.
 

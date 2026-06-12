@@ -30,9 +30,13 @@ approval model depends on.
    synthesizer (empty → default `TTS_VOICE`). The greeting cache is keyed by
    (voice, text). Per-tenant persona (system prompt/tone) is a later brain
    increment.
-3. **Semantic end-of-turn (planned, own ADR).** Replace pure energy-VAD
-   segmentation with meaning-aware turn closure so the agent neither cuts
-   the caller off nor leaves a gap; amends ADR-032 VAD.
+3. **Semantic end-of-turn (shipped, ADR-038).** The manual-VAD path closes
+   a turn on a two-tier pause: a hard window (2× the configured silence)
+   always closes it; the soft window (the configured silence) closes it
+   only when the running transcript reads finished (`looksLikeCompleteTurn`).
+   A mid-sentence pause on a hanging word is held; a finished sentence
+   still commits promptly. Empty text commits at the soft window (no
+   regression).
 4. **Barge-in v2 (planned, own ADR).** Echo-aware interruption: the line
    stops cleanly on caller speech and never transcribes the tail of its
    own voice as a turn.
@@ -44,7 +48,8 @@ approval model depends on.
       every existing call test stays green.
 - [x] Each tenant answers in its configured brand voice; absent → default,
       and the greeting cache never crosses voices (unit 2).
-- [ ] Turn closure is meaning-aware, measured on live calls (unit 3).
+- [x] Turn closure is meaning-aware: a mid-sentence pause is held to the
+      hard window, a finished sentence commits at the soft window (unit 3).
 - [ ] Caller interruptions never produce a ghost turn (unit 4).
 
 ## Out of scope

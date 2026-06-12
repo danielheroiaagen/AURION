@@ -87,5 +87,23 @@ class BrandVoiceTests(unittest.TestCase):
         self.assertIn("its own brand voice", spec)
 
 
+class SemanticEndpointingTests(unittest.TestCase):
+    def test_two_tier_silence_with_a_completeness_heuristic(self):
+        tr = read(GATEWAY / "src" / "infrastructure" / "realtime-transcriber.ts")
+        for marker in [
+            "looksLikeCompleteTurn",
+            "HARD_SILENCE_MULTIPLIER",
+            "CONTINUATION_CUES",
+            "input_audio_transcription.delta",
+            "partialText",
+        ]:
+            self.assertIn(marker, tr)
+
+    def test_endpointing_has_call_flow_coverage(self):
+        spec = read(GATEWAY / "test" / "telephony.spec.ts")
+        self.assertIn("does not cut off a mid-sentence pause", spec)
+        self.assertIn("commits a finished sentence promptly", spec)
+
+
 if __name__ == "__main__":
     unittest.main()

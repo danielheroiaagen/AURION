@@ -12,7 +12,10 @@ import type {
 } from '../src/application/ports.js';
 import { loadGatewayConfig } from '../src/config.js';
 import { linearToUlaw, pcm16ToUlaw8k, ulawFrames, ulawToLinear } from '../src/infrastructure/audio.js';
-import { OpenAiRealtimeTranscriber } from '../src/infrastructure/realtime-transcriber.js';
+import {
+  looksLikeCompleteTurn,
+  OpenAiRealtimeTranscriber,
+} from '../src/infrastructure/realtime-transcriber.js';
 import { ScriptedBrain } from '../src/infrastructure/scripted-brain.js';
 import { parseTwilioEvent, TwilioProtocolError } from '../src/infrastructure/twilio-protocol.js';
 import { startWsServer } from '../src/infrastructure/ws-server.js';
@@ -319,6 +322,111 @@ describe('OpenAiRealtimeTranscriber (ws client, audio/pcmu, ADR-027)', () => {
         ),
       ).toHaveLength(1);
     });
+
+    stream.close();
+    provider.close();
+  });
+
+  // --- Semantic endpointing (ADR-038, Fase 29 Audio Pro) -------------------
+
+  it('looksLikeCompleteTurn reads finished vs mid-thought transcripts', () => {
+    // Finished: terminal punctuation, or ending on a content word.
+    expect(looksLikeCompleteTurn('quiero cambiar mi cita.')).toBe(true);
+    expect(looksLikeCompleteTurn('quiero cambiar mi cita')).toBe(true);
+    expect(looksLikeCompleteTurn('¿me puedes ayudar?')).toBe(true);
+    // No signal yet → do not add latency.
+    expect(looksLikeCompleteTurn('')).toBe(true);
+    // Mid-thought: a hanging function word or a trailing comma.
+    expect(looksLikeCompleteTurn('quiero cambiar mi')).toBe(false);
+    expect(looksLikeCompleteTurn('necesito hablar con')).toBe(false);
+    expect(looksLikeCompleteTurn('a ver, mi pedido y')).toBe(false);
+    expect(looksLikeCompleteTurn('hola, ')).toBe(false);
+  });
+
+  /** μ-law silence (0xFF) vs loud speech, in 200 ms (1600-byte) frames. */
+  const SPEECH_200MS = Buffer.alloc(1600, linearToUlaw(9000));
+  const SILENCE_200MS = Buffer.alloc(1600, 0xff);
+  const commitCount = (provider: { received: Record<string, unknown>[] }): number =>
+    provider.received.filter((e) => (e as { type?: string }).type === 'input_audio_buffer.commit')
+      .length;
+
+  it('does not cut off a mid-sentence pause — one utterance, one commit (ADR-038)', async () => {
+    const provider = await startFakeProvider();
+    const transcriber = new OpenAiRealtimeTranscriber(
+      { ...STT_CONFIG, apiUrl: `http://127.0.0.1:${provider.port}`, model: 'gpt-realtime-whisper' },
+      400, // soft window 400 ms → hard window 800 ms
+    );
+    const onSpeechStarted = vi.fn();
+    const stream = await transcriber.open(
+      { onUtterance: vi.fn(), onSpeechStarted, onError: vi.fn() },
+      'es-ES',
+    );
+    await vi.waitFor(() => expect(provider.received.length).toBeGreaterThan(0));
+
+    // The caller starts an unfinished sentence.
+    stream.push(SPEECH_200MS);
+    provider.send({
+      type: 'conversation.item.input_audio_transcription.delta',
+      delta: 'quiero cambiar mi',
+    });
+    // A sentinel sent AFTER the delta: same socket, in order, so when the
+    // 2nd speech_started lands the delta has already been applied.
+    provider.send({ type: 'input_audio_buffer.speech_started' });
+    await vi.waitFor(() => expect(onSpeechStarted.mock.calls.length).toBeGreaterThanOrEqual(2));
+
+    // 600 ms pause — past the soft window, but the text ends on "mi" (a
+    // continuation cue), so the turn is held instead of cut off.
+    stream.push(SILENCE_200MS);
+    stream.push(SILENCE_200MS);
+    stream.push(SILENCE_200MS);
+
+    // The caller resumes and finishes the SAME thought.
+    stream.push(SPEECH_200MS);
+    provider.send({
+      type: 'conversation.item.input_audio_transcription.delta',
+      delta: ' cita',
+    });
+    provider.send({ type: 'input_audio_buffer.speech_started' });
+    await vi.waitFor(() => expect(onSpeechStarted.mock.calls.length).toBeGreaterThanOrEqual(3));
+
+    // Now a 400 ms pause on a finished sentence closes the turn.
+    stream.push(SILENCE_200MS);
+    stream.push(SILENCE_200MS);
+    await vi.waitFor(() => expect(commitCount(provider)).toBe(1));
+    // Exactly one: a naive fixed-VAD would have cut the first pause into a
+    // second turn (two commits). Semantic endpointing kept it whole.
+    expect(commitCount(provider)).toBe(1);
+
+    stream.close();
+    provider.close();
+  });
+
+  it('commits a finished sentence promptly at the soft window (ADR-038)', async () => {
+    const provider = await startFakeProvider();
+    const transcriber = new OpenAiRealtimeTranscriber(
+      { ...STT_CONFIG, apiUrl: `http://127.0.0.1:${provider.port}`, model: 'gpt-realtime-whisper' },
+      400, // hard window would be 800 ms
+    );
+    const onSpeechStarted = vi.fn();
+    const stream = await transcriber.open(
+      { onUtterance: vi.fn(), onSpeechStarted, onError: vi.fn() },
+      'es-ES',
+    );
+    await vi.waitFor(() => expect(provider.received.length).toBeGreaterThan(0));
+
+    stream.push(SPEECH_200MS);
+    provider.send({
+      type: 'conversation.item.input_audio_transcription.delta',
+      delta: 'quiero cambiar mi cita.',
+    });
+    provider.send({ type: 'input_audio_buffer.speech_started' });
+    await vi.waitFor(() => expect(onSpeechStarted.mock.calls.length).toBeGreaterThanOrEqual(2));
+
+    // 400 ms pause = the soft window, well below the 800 ms hard window. A
+    // finished sentence commits here — only the soft+complete path can.
+    stream.push(SILENCE_200MS);
+    stream.push(SILENCE_200MS);
+    await vi.waitFor(() => expect(commitCount(provider)).toBe(1));
 
     stream.close();
     provider.close();

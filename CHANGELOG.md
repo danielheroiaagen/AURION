@@ -28,6 +28,16 @@ The format follows Keep a Changelog principles and commit messages follow Conven
   `TTS_VOICE`. The telephony greeting cache is now keyed by (voice, text)
   so it never replays one tenant's audio for another. OpenAI and HeyGen
   adapters honor the override; new unit, call-flow and contract tests.
+- Phase 29 Audio Pro, semantic end-of-turn (ADR-038, amends ADR-032 VAD):
+  the manual-VAD path (gpt-realtime-whisper) closes a turn on a two-tier
+  pause — a hard window (2× the configured silence) always closes it, while
+  the soft window closes it only when the running transcript reads finished
+  (`looksLikeCompleteTurn`, fed by streaming transcription deltas). A pause
+  on a hanging function word ("…cambiar mi") is held to the hard window
+  instead of being cut off; a finished sentence still commits promptly at
+  the soft window, and empty/unknown text commits at the soft window so
+  there is no added latency or regression. New unit, two call-flow and
+  contract tests.
 - Professional repository governance files for Git/GitHub readiness.
 - Phase 0 GitHub readiness plan.
 - ADR for the initial Voice Agent SaaS Core MVP.
