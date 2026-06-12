@@ -8,6 +8,19 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 
 ### Added
 
+- ADR-038 speech-to-speech decision + Phase 29 (Audio Pro) / Phase 30
+  (Call QA) plans: the answering tier keeps the STT → brain → TTS pipeline
+  because the text turn is what makes actions approval-gated (ADR-013) and
+  the answer the source of truth (ADR-026); native speech-to-speech is
+  scoped as a deferred, ADR-gated premium tier, not a silent swap. First
+  Audio Pro increment shipped — **backchannel on slow turns**: when the
+  brain has not answered within `TELEPHONY_BACKCHANNEL_MS` (default 1500,
+  `0` disables) the phone speaks a short, language-matched filler ("Un
+  momento, lo reviso.") so a slow turn never leaves dead air; the reply
+  text still follows and stays the source of truth, and fast turns
+  (gpt-5.4-mini ≈ 0.9 s) never trigger it. Two new gateway Vitest cases
+  (slow turn fills then replies; fast turn does not) and a phase-29
+  contract suite.
 - Professional repository governance files for Git/GitHub readiness.
 - Phase 0 GitHub readiness plan.
 - ADR for the initial Voice Agent SaaS Core MVP.

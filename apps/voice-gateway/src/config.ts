@@ -51,6 +51,10 @@ export interface TelephonyConfig {
   /** Cost guards for paid traffic (ADR-034): simultaneous and daily caps. */
   readonly maxConcurrentCalls: number;
   readonly maxCallsPerDay: number;
+  /** Backchannel window (ADR-038): speak a short filler when the brain has
+   * not answered within this many ms; 0 disables. The reply text still
+   * follows and stays the source of truth. */
+  readonly backchannelMs: number;
   /** Per-number tenant routes (ADR-035); empty = single-tenant. */
   readonly routes: readonly TenantRoute[];
 }
@@ -101,6 +105,16 @@ export interface GatewayConfig {
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/** Like parsePositiveInt but admits 0 (an explicit "disabled"); only a
+ * negative or unparseable value falls back. */
+function parseNonNegativeInt(value: string | undefined, fallback: number): number {
+  if (value === undefined || value.trim() === '') {
+    return fallback;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 /**
@@ -354,6 +368,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
       sttModel: (env.TELEPHONY_STT_MODEL ?? '').trim(),
       maxConcurrentCalls: parsePositiveInt(env.TELEPHONY_MAX_CONCURRENT, 4),
       maxCallsPerDay: parsePositiveInt(env.TELEPHONY_MAX_CALLS_PER_DAY, 200),
+      backchannelMs: parseNonNegativeInt(env.TELEPHONY_BACKCHANNEL_MS, 1500),
       routes: parseTenantRoutes(env.TELEPHONY_TENANT_ROUTES, oidc),
     };
   }

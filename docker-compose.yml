@@ -120,6 +120,8 @@ services:
       # Cost guards for paid traffic (ADR-034).
       TELEPHONY_MAX_CONCURRENT: ${TELEPHONY_MAX_CONCURRENT:-4}
       TELEPHONY_MAX_CALLS_PER_DAY: ${TELEPHONY_MAX_CALLS_PER_DAY:-200}
+      # Backchannel filler on slow turns (ADR-038); 0 disables.
+      TELEPHONY_BACKCHANNEL_MS: ${TELEPHONY_BACKCHANNEL_MS:-1500}
       # Signed TwiML front door (ADR-028).
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TELEPHONY_PUBLIC_URL: ${TELEPHONY_PUBLIC_URL:-}

@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket, WebSocketServer } from 'ws';
 
 import type {
+  AgentBrainPort,
   AurionApiPort,
+  SpeechSynthesisPort,
   StreamingTranscriptionPort,
   UtteranceStreamHandlers,
 } from '../src/application/ports.js';
@@ -46,6 +48,7 @@ describe('telephony configuration (fail closed, ADR-027/ADR-028)', () => {
     expect(config.telephonyMode).toBe('twilio');
     expect(config.telephony?.lang).toBe('es-ES');
     expect(config.telephony?.silenceMs).toBe(600);
+    expect(config.telephony?.backchannelMs).toBe(1500);
     expect(config.telephony?.greeting.length).toBeGreaterThan(0);
     expect(config.telephony?.publicUrl).toBe('https://aurion.test');
   });
@@ -449,6 +452,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           sttModel: '',
           maxConcurrentCalls: 4,
           maxCallsPerDay: 200,
+          backchannelMs: 0,
           routes: [],
         },
       },
@@ -496,6 +500,102 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
     expect(await phone.next()).toEqual({ event: 'clear', streamSid: 'MZ1' });
   });
 
+  // --- Backchannel on slow turns (ADR-038, Fase 29 Audio Pro) ---------------
+
+  /** A brain that answers after `ms`, plus a synthesizer that records the
+   * exact texts it voices so a test can assert the spoken order. */
+  function bootBackchannel(input: {
+    brainMs: number;
+    backchannelMs: number;
+    spoken: string[];
+    logs: string[];
+  }): { stt: ReturnType<typeof fakeStreamingTranscriber>; port: number } {
+    const stt = fakeStreamingTranscriber();
+    const slowBrain: AgentBrainPort = {
+      respond: async () => {
+        await new Promise((resolve) => setTimeout(resolve, input.brainMs));
+        return { text: 'Tu pedido llega mañana.', toolIntent: null };
+      },
+    };
+    const recordingSynth: SpeechSynthesisPort = {
+      synthesize: async (text) => {
+        input.spoken.push(text);
+        return { audio: PCM_REPLY, mimeType: 'audio/pcm;rate=24000' };
+      },
+    };
+    server?.close();
+    server = startWsServer({
+      port: 0,
+      clientKeys: [CLIENT_KEY],
+      api: fakeApi(),
+      brain: new ScriptedBrain(),
+      transcriber: null,
+      synthesizer: null,
+      twilio: {
+        clientKeys: [CLIENT_KEY],
+        api: fakeApi(),
+        brain: slowBrain,
+        transcriber: stt.port,
+        synthesizer: recordingSynth,
+        telephony: {
+          greeting: 'Hola, soy AURION.',
+          lang: 'es-ES',
+          silenceMs: 600,
+          twilioAuthToken: 'twilio-token-testtesttest',
+          publicUrl: 'https://aurion.test',
+          sttModel: '',
+          maxConcurrentCalls: 4,
+          maxCallsPerDay: 200,
+          backchannelMs: input.backchannelMs,
+          routes: [],
+        },
+      },
+      log: (message) => input.logs.push(message),
+    });
+    return { stt, port: (server.address() as { port: number }).port };
+  }
+
+  it('fills a slow turn with a language-matched filler before the real reply (ADR-038)', async () => {
+    const spoken: string[] = [];
+    const logs: string[] = [];
+    const { stt, port } = bootBackchannel({ brainMs: 80, backchannelMs: 20, spoken, logs });
+    const phone = await connectPhone(port);
+    phone.send(startEvent(CLIENT_KEY));
+    await phone.next(); // greeting frame
+
+    stt.handlers().onUtterance('¿cuándo llega mi pedido?');
+    await phone.next(); // filler frame (the brain has not answered yet)
+    await phone.next(); // reply frame
+
+    await vi.waitFor(() =>
+      expect(logs.some((line) => line.includes('backchannel=yes'))).toBe(true),
+    );
+    // The reply TEXT is the source of truth and always follows the filler.
+    expect(spoken).toEqual([
+      'Hola, soy AURION.',
+      'Un momento, lo reviso.',
+      'Tu pedido llega mañana.',
+    ]);
+  });
+
+  it('does not fill a fast turn — no filler, no dead air to cover (ADR-038)', async () => {
+    const spoken: string[] = [];
+    const logs: string[] = [];
+    const { stt, port } = bootBackchannel({ brainMs: 0, backchannelMs: 500, spoken, logs });
+    const phone = await connectPhone(port);
+    phone.send(startEvent(CLIENT_KEY));
+    await phone.next(); // greeting frame
+
+    stt.handlers().onUtterance('hola');
+    await phone.next(); // reply frame, directly
+
+    await vi.waitFor(() =>
+      expect(logs.some((line) => line.includes('phone turn timing'))).toBe(true),
+    );
+    expect(logs.some((line) => line.includes('backchannel=yes'))).toBe(false);
+    expect(spoken).toEqual(['Hola, soy AURION.', 'Tu pedido llega mañana.']);
+  });
+
   it('streams PCM replies as frames and drops echoes of its own voice (ADR-032)', async () => {
     const stt = fakeStreamingTranscriber();
     const logs: string[] = [];
@@ -531,6 +631,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           sttModel: '',
           maxConcurrentCalls: 4,
           maxCallsPerDay: 200,
+          backchannelMs: 0,
           routes: [],
         },
       },
@@ -582,6 +683,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
         sttModel: '',
         maxConcurrentCalls: 4,
         maxCallsPerDay: 200,
+        backchannelMs: 0,
         routes: [],
       },
     };
@@ -643,6 +745,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           sttModel: '',
           maxConcurrentCalls: 4,
           maxCallsPerDay: 200,
+          backchannelMs: 0,
           routes: [],
         },
       },
@@ -687,6 +790,7 @@ describe('Twilio bridge call flow (ADR-027: transport changes, authority does no
           sttModel: '',
           maxConcurrentCalls: 4,
           maxCallsPerDay: 200,
+          backchannelMs: 0,
           routes: [],
         },
       },

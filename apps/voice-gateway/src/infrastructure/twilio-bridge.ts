@@ -54,6 +54,29 @@ export interface CallIdentity {
 
 const APOLOGY = 'Disculpa, ha habido un problema técnico. ¿Puedes repetirlo?';
 
+/** Short, language-matched fillers for a slow turn (ADR-038). They keep the
+ * line alive while the brain works; they are never an answer and never an
+ * action — the reply text always follows. */
+const BACKCHANNELS: Readonly<Record<string, string>> = {
+  es: 'Un momento, lo reviso.',
+  en: 'One moment, let me check.',
+  pt: 'Um momento, vou verificar.',
+};
+
+function pickBackchannel(lang: string): string {
+  return BACKCHANNELS[lang.slice(0, 2).toLowerCase()] ?? BACKCHANNELS.es;
+}
+
+/** A cancelable timeout: resolves `true` if it fires, never throws, and is
+ * cleared as soon as the turn wins the race so no timer dangles. */
+function fillerTimer(ms: number): { fired: Promise<boolean>; cancel: () => void } {
+  let handle: ReturnType<typeof setTimeout>;
+  const fired = new Promise<boolean>((resolve) => {
+    handle = setTimeout(() => resolve(true), ms);
+  });
+  return { fired, cancel: () => clearTimeout(handle) };
+}
+
 /** The greeting never changes per process: synthesize ONCE, replay
  * instantly on every call (ADR-029 tuning — buffered voices like the
  * operator clone cost seconds per synthesis). Keyed by the synthesizer
@@ -176,13 +199,37 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
         // tells the caller honestly that the request awaits approval
         // (ADR-013) — the brain's words are the phone UI.
         const brainStart = Date.now();
-        const result = await engine!.userTurn(text);
+        const turnPromise = engine!.userTurn(text);
+        // Backchannel (ADR-038): a slow brain leaves dead air on the line.
+        // If the answer is not ready within the window, speak a short
+        // language-matched filler so the caller knows we are working — the
+        // reply TEXT still follows and stays the source of truth.
+        let filled = false;
+        if (options.telephony.backchannelMs > 0) {
+          const timer = fillerTimer(options.telephony.backchannelMs);
+          const ready = await Promise.race([
+            turnPromise.then(
+              () => true,
+              () => true,
+            ),
+            timer.fired.then(() => false),
+          ]);
+          timer.cancel();
+          if (!ready) {
+            filled = true;
+            await say(pickBackchannel(identity.lang));
+          }
+        }
+        const result = await turnPromise;
         const brainMs = Date.now() - brainStart;
         const ttsStart = Date.now();
         await say(result.reply);
         // Latency is a product feature on a phone call: keep the
         // breakdown in the logs so regressions are diagnosable.
-        log(`phone turn timing: brain=${brainMs}ms tts=${Date.now() - ttsStart}ms`);
+        log(
+          `phone turn timing: brain=${brainMs}ms tts=${Date.now() - ttsStart}ms` +
+            (filled ? ' backchannel=yes' : ''),
+        );
       } catch (error) {
         log(`phone turn failed: ${error instanceof Error ? error.message : String(error)}`);
         try {
