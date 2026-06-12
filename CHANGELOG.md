@@ -8,6 +8,13 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 
 ### Added
 
+- ADR-040 / Phase 31 U1 live demo hero: replaced hero copy/CTAs with proof-led content
+  ("AURION: la recepcionista IA que atiende tus llamadas en español, 24/7"), embedded
+  voice widget with lazy activation (zero WS on page load, GDPR-clean), pre-recorded
+  audio demo generated with the production TTS voice (alloy, gpt-4o-mini-tts), collapsible
+  full dialogue transcript, AI disclosure, and `tools/demo-audio/generate.mjs` regeneration
+  script. Phase 29 markers (demo form, WhatsApp link) preserved. Phase 31 plan lists all
+  nine units (U1–U9); U2–U9 remain pending.
 - ADR-039 / Phase 30 post-call intelligence: asynchronous AI summary and
   structured insights (intent, lead quality, action items, caller name) generated
   after each completed voice session. Caller phone number captured from Twilio
