@@ -94,6 +94,13 @@ export interface RequestedAction {
   readonly approvalRequired: boolean;
 }
 
+/** One transcript turn for QA retention (ADR-039). */
+export interface TranscriptTurn {
+  readonly index: number;
+  readonly speaker: 'caller' | 'agent';
+  readonly text: string;
+}
+
 export interface AurionApiPort {
   /** POST /voice-sessions (idempotent on external_session_id) + transition to active. */
   startSession(externalSessionId: string): Promise<StartedSession>;
@@ -114,4 +121,8 @@ export interface AurionApiPort {
     status: 'completed' | 'failed',
     fields: { summary?: string; outcome?: string },
   ): Promise<void>;
+  /** Optional: persist the per-turn transcript for QA review (ADR-039).
+   * Best-effort — the engine never blocks session close on it. Idempotent on
+   * (session, turn index) at the API. */
+  recordTranscript?(sessionId: string, turns: readonly TranscriptTurn[]): Promise<void>;
 }

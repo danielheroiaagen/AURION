@@ -16,7 +16,14 @@ import { requireActorTenant } from '../../../common/http/actor-tenant';
 import { CurrentActor } from '../../auth/decorators/current-actor.decorator';
 import { RequirePermission } from '../../auth/decorators/require-permission.decorator';
 import type { AuthenticatedActor } from '../../auth/domain/actor';
+import { TranscriptService } from '../application/transcript.service';
 import { VoiceSessionsService } from '../application/voice-sessions.service';
+import {
+  AppendTranscriptDto,
+  toTranscriptResponse,
+  type AppendTranscriptResponse,
+  type TranscriptResponse,
+} from './transcript.dto';
 import {
   ChangeVoiceSessionStatusDto,
   ListVoiceSessionsQueryDto,
@@ -38,7 +45,10 @@ import {
 @ApiBearerAuth()
 @Controller('voice-sessions')
 export class VoiceSessionsController {
-  constructor(private readonly sessions: VoiceSessionsService) {}
+  constructor(
+    private readonly sessions: VoiceSessionsService,
+    private readonly transcripts: TranscriptService,
+  ) {}
 
   @Post()
   @RequirePermission('conversation:write')
@@ -101,6 +111,37 @@ export class VoiceSessionsController {
         outcome: body.outcome,
         transcriptUri: body.transcript_uri,
       }),
+    );
+  }
+
+  @Post(':id/turns')
+  @RequirePermission('conversation:write')
+  @ApiOperation({
+    summary: 'Append transcript turns for QA (idempotent on turn index). Encrypted at rest.',
+  })
+  async appendTurns(
+    @CurrentActor() actor: AuthenticatedActor,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AppendTranscriptDto,
+  ): Promise<AppendTranscriptResponse> {
+    return this.transcripts.append(
+      requireActorTenant(actor),
+      id,
+      body.turns.map((turn) => ({ turnIndex: turn.index, speaker: turn.speaker, text: turn.text })),
+    );
+  }
+
+  @Get(':id/turns')
+  @RequirePermission('conversation:review')
+  @ApiOperation({
+    summary: 'Read the conversation transcript for QA review (decrypted for authorized reviewers).',
+  })
+  async getTurns(
+    @CurrentActor() actor: AuthenticatedActor,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<TranscriptResponse> {
+    return toTranscriptResponse(
+      await this.transcripts.getTranscript(requireActorTenant(actor), id),
     );
   }
 }

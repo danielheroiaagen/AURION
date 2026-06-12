@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import * as path from 'node:path';
 import { randomBytes } from 'node:crypto';
 
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
 
@@ -16,7 +16,9 @@ import type { AuthenticatedActor } from '../../src/modules/auth/domain/actor';
 import { ControlledActionsService } from '../../src/modules/actions/application/controlled-actions.service';
 import { KyselyControlledActionsRepository } from '../../src/modules/actions/infrastructure/kysely-controlled-actions.repository';
 import { NoopDispatcher } from '../../src/modules/actions/infrastructure/noop.dispatcher';
+import { TranscriptService } from '../../src/modules/voice-sessions/application/transcript.service';
 import { VoiceSessionsService } from '../../src/modules/voice-sessions/application/voice-sessions.service';
+import { KyselyTranscriptRepository } from '../../src/modules/voice-sessions/infrastructure/kysely-transcript.repository';
 import { KyselyVoiceSessionsRepository } from '../../src/modules/voice-sessions/infrastructure/kysely-voice-sessions.repository';
 
 /**
@@ -76,6 +78,7 @@ describeIntegration('voice sessions & controlled actions against PostgreSQL', ()
   let scoped: TenantScopedDb;
   let crypto: FieldEncryptionService;
   let sessions: VoiceSessionsService;
+  let transcripts: TranscriptService;
   let actions: ControlledActionsService;
 
   beforeAll(async () => {
@@ -135,6 +138,10 @@ describeIntegration('voice sessions & controlled actions against PostgreSQL', ()
     scoped = new TenantScopedDb(app);
     crypto = new FieldEncryptionService([{ id: 'itest', key: randomBytes(32) }]);
     sessions = new VoiceSessionsService(new KyselyVoiceSessionsRepository(scoped, crypto));
+    transcripts = new TranscriptService(
+      new KyselyTranscriptRepository(scoped, crypto),
+      sessions,
+    );
     actions = new ControlledActionsService(
       new KyselyControlledActionsRepository(scoped, crypto),
       new NoopDispatcher(),
@@ -279,5 +286,82 @@ describeIntegration('voice sessions & controlled actions against PostgreSQL', ()
         .executeTakeFirst(),
     );
     expect(fromB).toBeUndefined();
+  });
+
+  // --- Call QA: per-turn transcript retention (ADR-039) --------------------
+
+  it('retains the transcript: ciphertext at rest, ordered and decrypted through the port', async () => {
+    const { session } = await sessions.start(agentActor, TENANT_A, 'ext-qa-1');
+    const result = await transcripts.append(TENANT_A, session.id, [
+      { turnIndex: 0, speaker: 'caller', text: 'Hola, quiero una cita.' },
+      { turnIndex: 1, speaker: 'agent', text: 'Claro, ¿para qué día?' },
+    ]);
+    expect(result.persisted).toBe(2);
+
+    const turns = await transcripts.getTranscript(TENANT_A, session.id);
+    expect(turns.map((turn) => [turn.turnIndex, turn.speaker, turn.text])).toEqual([
+      [0, 'caller', 'Hola, quiero una cita.'],
+      [1, 'agent', 'Claro, ¿para qué día?'],
+    ]);
+
+    // Raw column read (admin bypasses RLS): ciphertext envelopes, not words.
+    const raw = await admin
+      .selectFrom('voice_session_turns')
+      .select('text')
+      .where('voice_session_id', '=', session.id)
+      .orderBy('turn_index', 'asc')
+      .execute();
+    expect(raw[0].text).toMatch(/^enc:v1:itest:/);
+    expect(raw.map((row) => row.text).join(' ')).not.toContain('cita');
+  });
+
+  it('transcript append is idempotent on (session, turn index)', async () => {
+    const { session } = await sessions.start(agentActor, TENANT_A, 'ext-qa-2');
+    const first = await transcripts.append(TENANT_A, session.id, [
+      { turnIndex: 0, speaker: 'caller', text: 'una' },
+    ]);
+    const replay = await transcripts.append(TENANT_A, session.id, [
+      { turnIndex: 0, speaker: 'caller', text: 'una' }, // already stored → ignored
+      { turnIndex: 1, speaker: 'agent', text: 'dos' }, // new
+    ]);
+    expect(first.persisted).toBe(1);
+    expect(replay.persisted).toBe(1);
+    expect(await transcripts.getTranscript(TENANT_A, session.id)).toHaveLength(2);
+  });
+
+  it('transcript turns are invisible across tenants (RLS) and immutable (append-only)', async () => {
+    const { session } = await sessions.start(agentActor, TENANT_A, 'ext-qa-3');
+    await transcripts.append(TENANT_A, session.id, [
+      { turnIndex: 0, speaker: 'caller', text: 'secreto' },
+    ]);
+
+    const fromB = await scoped.withTenant(TENANT_B, (trx) =>
+      trx
+        .selectFrom('voice_session_turns')
+        .selectAll()
+        .where('voice_session_id', '=', session.id)
+        .execute(),
+    );
+    expect(fromB).toEqual([]);
+
+    // A transcript is evidence: even an admin UPDATE/DELETE is blocked.
+    await expect(
+      admin
+        .updateTable('voice_session_turns')
+        .set({ text: 'tampered' })
+        .where('voice_session_id', '=', session.id)
+        .execute(),
+    ).rejects.toThrow();
+    await expect(
+      admin.deleteFrom('voice_session_turns').where('voice_session_id', '=', session.id).execute(),
+    ).rejects.toThrow();
+  });
+
+  it('appending to an unknown session is a clean 404', async () => {
+    await expect(
+      transcripts.append(TENANT_A, '00000000-0000-4000-8000-000000000000', [
+        { turnIndex: 0, speaker: 'caller', text: 'x' },
+      ]),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

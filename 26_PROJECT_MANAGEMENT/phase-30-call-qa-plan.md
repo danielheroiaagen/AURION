@@ -3,7 +3,7 @@ project: AURION
 document: Phase 30 Call QA Plan
 folder: 26_PROJECT_MANAGEMENT
 owner: Daniel Gonzalez Junco
-status: planned
+status: in-progress
 created_at: 2026-06-12
 related: ADR-013, ADR-018, ADR-023, ADR-038
 ---
@@ -18,11 +18,17 @@ cannot review.
 
 ## Work units (each its own ADR + increment)
 
-1. **Call recording & transcript review.** A reviewable record per call:
-   the transcript already exists (sessions carry an encrypted summary,
-   ADR-013); add per-turn transcript retention and, where consented, audio
-   retention — under the SAME RLS tenancy and column-encryption posture,
-   with an explicit GDPR retention window (ties to `13_COMPLIANCE`).
+1. **Call recording & transcript review.**
+   - **Per-turn transcript retention (shipped, ADR-039).** New
+     `voice_session_turns` table: tenant-scoped (RLS), `text` AES-256-GCM
+     encrypted at the app layer, append-only (the audit guard). The gateway
+     flushes the transcript in one best-effort batch at close;
+     `POST /voice-sessions/:id/turns` (write, `conversation:write`,
+     idempotent) and `GET /voice-sessions/:id/turns` (QA read,
+     `conversation:review`).
+   - **Remaining (planned):** consented audio retention, and an explicit
+     GDPR retention window (auto-expiry sweep) — crypto-shredding (ADR-015)
+     is the erasure lever until then (ties to `13_COMPLIANCE`).
 2. **Conversation scoring / eval.** Automated per-call scoring (resolution,
    language fidelity, latency, escalation correctness) building on the
    per-turn timing logs (ADR-032) and the eval/simulation docs in
@@ -33,8 +39,9 @@ cannot review.
 
 ## Acceptance criteria
 
-- [ ] Every call has a reviewable, tenant-isolated record honoring its
-      consent and retention window.
+- [x] Every call has a reviewable, tenant-isolated, encrypted, append-only
+      per-turn transcript (unit 1, ADR-039); consent/retention-window
+      enforcement still pending.
 - [ ] Each call carries an automated quality score with an auditable
       breakdown.
 - [ ] A tenant admin can review outcomes and flag calls from the dashboard.

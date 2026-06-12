@@ -8,6 +8,22 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 
 ### Added
 
+- ADR-039 call QA, step 1: per-turn transcript retention. New
+  `voice_session_turns` table (migration 0003) — tenant-scoped (RLS), the
+  spoken `text` AES-256-GCM encrypted at the application layer, and
+  append-only (the same `aurion_block_mutation` guard as `audit_events`) so
+  a transcript can never be rewritten. Two endpoints on the voice-sessions
+  group: `POST /voice-sessions/:id/turns` (the voice agent's
+  `conversation:write`, idempotent on `(session, turn_index)`) and
+  `GET /voice-sessions/:id/turns` (QA read, the existing
+  `conversation:review` permission, decrypted). The gateway flushes the
+  whole transcript in one best-effort batch at session close — no extra API
+  round-trip on the latency-critical call path, and a failure never blocks
+  the close. New API integration tests (ciphertext at rest, ordering, RLS
+  isolation, append-only immutability, idempotent replay, 404 on unknown
+  session), gateway unit tests, and a phase-30 contract suite; OpenAPI
+  artifact regenerated.
+
 - ADR-038 speech-to-speech decision + Phase 29 (Audio Pro) / Phase 30
   (Call QA) plans: the answering tier keeps the STT → brain → TTS pipeline
   because the text turn is what makes actions approval-gated (ADR-013) and

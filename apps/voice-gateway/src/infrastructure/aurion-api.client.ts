@@ -2,6 +2,7 @@ import type {
   AurionApiPort,
   RequestedAction,
   StartedSession,
+  TranscriptTurn,
 } from '../application/ports.js';
 
 /**
@@ -100,6 +101,21 @@ export class AurionApiClient implements AurionApiPort {
         status,
         ...(fields.summary ? { summary: fields.summary } : {}),
         ...(fields.outcome ? { outcome: fields.outcome } : {}),
+      },
+    });
+  }
+
+  async recordTranscript(sessionId: string, turns: readonly TranscriptTurn[]): Promise<void> {
+    if (turns.length === 0) {
+      return;
+    }
+    await this.request('POST', `/voice-sessions/${sessionId}/turns`, {
+      body: {
+        turns: turns.map((turn) => ({
+          index: turn.index,
+          speaker: turn.speaker,
+          text: turn.text,
+        })),
       },
     });
   }
