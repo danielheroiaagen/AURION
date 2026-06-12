@@ -1,4 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 
 import type {
   CreateVoiceSessionInput,
@@ -10,6 +12,7 @@ import { VoiceSessionsService } from '../../src/modules/voice-sessions/applicati
 import { canTransition } from '../../src/modules/voice-sessions/domain/voice-session';
 import type { AuthenticatedActor } from '../../src/modules/auth/domain/actor';
 import type { Page } from '../../src/common/pagination/cursor';
+import { AiInsightsDto } from '../../src/modules/voice-sessions/http/voice-sessions.dto';
 
 const TENANT = '11111111-1111-4111-8111-111111111111';
 const SESSION_ID = '22222222-2222-4222-8222-222222222222';
@@ -31,6 +34,9 @@ function session(overrides: Partial<VoiceSession> = {}): VoiceSession {
     transcriptUri: null,
     summary: null,
     outcome: null,
+    callerNumber: null,
+    aiSummary: null,
+    aiInsights: null,
     startedAt: new Date('2026-06-10T10:00:00Z'),
     endedAt: null,
     createdAt: new Date('2026-06-10T10:00:00Z'),
@@ -66,6 +72,10 @@ class FakeRepo implements VoiceSessionsRepositoryPort {
   async transitionStatus(...args: unknown[]): Promise<VoiceSession | null> {
     this.lastTransition = args;
     return this.transitionResult;
+  }
+
+  async patchAiSummary(): Promise<VoiceSession | null> {
+    return session({ status: 'completed' });
   }
 }
 
@@ -154,5 +164,39 @@ describe('VoiceSessionsService', () => {
     await expect(
       service.changeStatus(TENANT, SESSION_ID, 'completed', {}),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('AiInsightsDto validation (PATCH ai-summary)', () => {
+  async function errorsFor(body: Record<string, unknown>): Promise<string[]> {
+    const dto = plainToInstance(AiInsightsDto, body);
+    const errors = await validate(dto, { whitelist: true });
+    return errors.flatMap((e) => Object.values(e.constraints ?? {}));
+  }
+
+  it('accepts a valid payload with string action_items', async () => {
+    const errors = await errorsFor({
+      intent: 'pricing inquiry',
+      action_items: ['Send PDF', 'Schedule call'],
+    });
+    expect(errors).toHaveLength(0);
+  });
+
+  it('rejects action_items containing non-string elements (objects, numbers)', async () => {
+    const errors = await errorsFor({
+      action_items: [{ a: 1 }, 9],
+    });
+    // Expect at least one validation error — the payload should be rejected.
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('accepts omitting action_items entirely (field is optional)', async () => {
+    const errors = await errorsFor({ intent: 'support request' });
+    expect(errors).toHaveLength(0);
+  });
+
+  it('rejects action_items that is not an array (e.g. a plain string)', async () => {
+    const errors = await errorsFor({ action_items: 'not an array' });
+    expect(errors.length).toBeGreaterThan(0);
   });
 });

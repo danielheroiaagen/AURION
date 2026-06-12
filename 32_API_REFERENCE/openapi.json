@@ -632,6 +632,45 @@
         ]
       }
     },
+    "/api/v1/voice-sessions/{id}/ai-summary": {
+      "patch": {
+        "operationId": "VoiceSessionsController_patchAiSummary",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchAiSummaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Write AI-generated summary and insights to a terminal session (idempotent, Phase-30).",
+        "tags": [
+          "voice-sessions"
+        ]
+      }
+    },
     "/api/v1/actions": {
       "post": {
         "operationId": "ControlledActionsController_request",
@@ -1014,6 +1053,11 @@
             "type": "string",
             "description": "Stable id from the realtime provider. Retries with the same id return the existing session.",
             "maxLength": 200
+          },
+          "caller_number": {
+            "type": "string",
+            "description": "Caller phone number (E.164-ish, max 32 chars). Encrypted at rest (ADR-011).",
+            "maxLength": 32
           }
         }
       },
@@ -1048,6 +1092,68 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "AiInsightsDto": {
+        "type": "object",
+        "properties": {
+          "intent": {
+            "type": "string",
+            "description": "Detected caller intent summary."
+          },
+          "caller_name": {
+            "type": "string",
+            "description": "Caller name as mentioned in the conversation, or null.",
+            "nullable": true
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Callback phone number mentioned by the caller, or null.",
+            "nullable": true
+          },
+          "lead_quality": {
+            "type": "string",
+            "description": "Lead quality classification.",
+            "enum": [
+              "hot",
+              "warm",
+              "cold"
+            ],
+            "nullable": true
+          },
+          "action_items": {
+            "description": "Action items extracted from the conversation.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": "string",
+            "description": "BCP-47 language code of the conversation."
+          }
+        }
+      },
+      "PatchAiSummaryDto": {
+        "type": "object",
+        "properties": {
+          "ai_summary": {
+            "type": "string",
+            "description": "AI-generated summary prose (max 4000 chars). Encrypted at rest.",
+            "maxLength": 4000
+          },
+          "ai_insights": {
+            "description": "Structured AI insights object.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiInsightsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "ai_summary",
+          "ai_insights"
         ]
       },
       "RequestActionDto": {

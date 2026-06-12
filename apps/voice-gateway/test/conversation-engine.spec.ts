@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ConversationEngine, EngineError } from '../src/application/conversation-engine.js';
 import type {
@@ -7,6 +7,7 @@ import type {
   BrainReply,
   RequestedAction,
 } from '../src/application/ports.js';
+import type { PostCallSummarizer } from '../src/application/post-call-summarizer.js';
 
 class FakeApi implements AurionApiPort {
   started: string[] = [];
@@ -47,6 +48,10 @@ class FakeApi implements AurionApiPort {
       throw this.closeError;
     }
     this.closes.push({ sessionId, status, ...fields });
+  }
+
+  async patchAiSummary(): Promise<void> {
+    // No-op in tests: post-call summarizer is not exercised by the engine tests.
   }
 }
 
@@ -155,5 +160,50 @@ describe('ConversationEngine', () => {
     await engine.start('ext-7');
     await engine.end();
     await expect(engine.userTurn('more')).rejects.toMatchObject({ code: 'no_session' });
+  });
+
+  it('end() resolves without waiting for the summarizer (fire-and-forget contract)', async () => {
+    const api = new FakeApi();
+    const patchAiSummary = vi.spyOn(api, 'patchAiSummary');
+
+    // A summarizer whose promise is controlled externally — we never resolve it
+    // during this test, so any accidental await of it would hang end().
+    let resolveSummary!: () => void;
+    const summaryPromise = new Promise<void>((resolve) => {
+      resolveSummary = resolve;
+    });
+
+    const fakeSummarizer: PostCallSummarizer = {
+      summarize: vi.fn().mockReturnValue(
+        summaryPromise.then(() => ({
+          summary: 'test summary',
+          insights: {},
+        })),
+      ),
+    } as unknown as PostCallSummarizer;
+
+    const engine = new ConversationEngine(
+      api,
+      brainReplying(PLAIN),
+      undefined,
+      fakeSummarizer,
+    );
+
+    await engine.start('ext-8');
+    await engine.userTurn('hello');
+
+    // end() must resolve quickly — the summarizer promise is still pending.
+    const endResult = await engine.end('done');
+    expect(endResult.status).toBe('completed');
+
+    // At the moment end() resolved, patchAiSummary must NOT have been called
+    // yet (the summarizer promise is still pending).
+    expect(patchAiSummary).not.toHaveBeenCalled();
+
+    // Resolve the summarizer to avoid any unhandled-rejection noise.
+    resolveSummary();
+    // Yield the microtask queue so the fire-and-forget chain can settle.
+    await Promise.resolve();
+    await Promise.resolve();
   });
 });

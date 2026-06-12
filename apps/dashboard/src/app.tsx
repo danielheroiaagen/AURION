@@ -9,6 +9,7 @@ import { CallbackPage } from './pages/callback';
 import { KnowledgePage } from './pages/knowledge';
 import { LoginPage } from './pages/login';
 import { OverviewPage } from './pages/overview';
+import { SessionDetailPage } from './pages/session-detail';
 import { SessionsPage } from './pages/sessions';
 import { TenantPage } from './pages/tenant';
 import { UsersPage } from './pages/users';
@@ -24,6 +25,7 @@ export function App(): ReactNode {
             <Route index element={<OverviewPage />} />
             <Route path="/actions" element={<ActionsPage />} />
             <Route path="/sessions" element={<SessionsPage />} />
+            <Route path="/sessions/:id" element={<SessionDetailPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/audit" element={<AuditPage />} />

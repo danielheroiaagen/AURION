@@ -1,4 +1,5 @@
 import { loadGatewayConfig } from './config.js';
+import { PostCallSummarizer } from './application/post-call-summarizer.js';
 import { AurionApiClient } from './infrastructure/aurion-api.client.js';
 import { HeyGenSpeechSynthesizer } from './infrastructure/heygen-speech.js';
 import { LlmBrain } from './infrastructure/llm-brain.js';
@@ -55,6 +56,12 @@ for (const route of config.telephony?.routes ?? []) {
 }
 const allClientKeys = [...config.clientKeys, ...routesByKey.keys()];
 
+// Phase-30: post-call summarizer — on when the feature is enabled and LLM is configured.
+const postCallSummarizer =
+  config.postCallSummary === 'on' && config.llm
+    ? new PostCallSummarizer(config.llm)
+    : null;
+
 startWsServer({
   port: config.port,
   clientKeys: config.clientKeys,
@@ -63,6 +70,7 @@ startWsServer({
   // STT_MODE likewise (ADR-025); off means audio.utterance answers stt_disabled.
   transcriber: config.sttMode === 'openai' ? new OpenAiTranscriber(config.stt!) : null,
   synthesizer,
+  postCallSummarizer,
   // TELEPHONY_MODE (ADR-027) is validated to require both STT and TTS.
   twilio:
     config.telephonyMode === 'twilio'
@@ -72,6 +80,7 @@ startWsServer({
           phoneToKey,
           api,
           brain,
+          postCallSummarizer,
           // The greeting doubles as the transcription's context bias: the
           // literal first words of the call, in the channel language.
           // TELEPHONY_STT_MODEL (ADR-032) can pick a streaming-first model

@@ -8,9 +8,10 @@ import {
 
 import type { Page } from '../../../common/pagination/cursor';
 import type { AuthenticatedActor } from '../../auth/domain/actor';
-import { canTransition, isClosing, type VoiceSessionStatus } from '../domain/voice-session';
+import { canTransition, isClosing, CLOSING_STATUSES, type VoiceSessionStatus } from '../domain/voice-session';
 import {
   VOICE_SESSIONS_REPOSITORY,
+  type AiInsights,
   type CloseVoiceSessionFields,
   type ListVoiceSessionsInput,
   type VoiceSession,
@@ -38,6 +39,7 @@ export class VoiceSessionsService {
     actor: AuthenticatedActor,
     tenantId: string,
     externalSessionId: string | null,
+    callerNumber: string | null = null,
   ): Promise<{ session: VoiceSession; created: boolean }> {
     if (externalSessionId) {
       const existing = await this.sessions.findByExternalSessionId(tenantId, externalSessionId);
@@ -50,6 +52,7 @@ export class VoiceSessionsService {
       externalSessionId,
       // Machine actors carry no user row; attribution stays in audit evidence.
       startedByUserId: actor.type === 'user' ? actor.id : null,
+      callerNumber,
     });
     return { session, created: true };
   }
@@ -98,6 +101,32 @@ export class VoiceSessionsService {
     );
     if (!updated) {
       throw new ConflictException('Session status changed concurrently; retry.');
+    }
+    return updated;
+  }
+
+  /**
+   * Write AI-generated summary and insights to a terminal session (Phase-30).
+   * Idempotent: repeated calls overwrite with the latest result.
+   * Session must exist (404) and be in a terminal status (409).
+   */
+  async patchAiSummary(
+    tenantId: string,
+    id: string,
+    fields: { aiSummary: string; aiInsights: AiInsights },
+  ): Promise<VoiceSession> {
+    const session = await this.getById(tenantId, id);
+    if (!CLOSING_STATUSES.has(session.status)) {
+      throw new ConflictException(
+        `AI summary can only be written to a terminal session; current status is "${session.status}".`,
+      );
+    }
+    const updated = await this.sessions.patchAiSummary(tenantId, id, {
+      aiSummary: fields.aiSummary,
+      aiInsights: fields.aiInsights,
+    });
+    if (!updated) {
+      throw new NotFoundException('Voice session not found.');
     }
     return updated;
   }

@@ -1,5 +1,6 @@
 import type {
   AurionApiPort,
+  PostCallInsights,
   RequestedAction,
   StartedSession,
 } from '../application/ports.js';
@@ -43,10 +44,15 @@ export class AurionApiClient implements AurionApiPort {
     this.tokenProvider = typeof token === 'string' ? async () => token : token;
   }
 
-  async startSession(externalSessionId: string): Promise<StartedSession> {
-    const session = await this.request<VoiceSessionShape>('POST', '/voice-sessions', {
-      body: { external_session_id: externalSessionId },
-    });
+  async startSession(
+    externalSessionId: string,
+    callerNumber?: string | null,
+  ): Promise<StartedSession> {
+    const body: Record<string, unknown> = { external_session_id: externalSessionId };
+    if (callerNumber) {
+      body.caller_number = callerNumber;
+    }
+    const session = await this.request<VoiceSessionShape>('POST', '/voice-sessions', { body });
     // New sessions are `started`; a resumed session may already be `active`.
     if (session.status === 'started') {
       await this.request('PATCH', `/voice-sessions/${session.id}/status`, {
@@ -102,6 +108,13 @@ export class AurionApiClient implements AurionApiPort {
         ...(fields.outcome ? { outcome: fields.outcome } : {}),
       },
     });
+  }
+
+  async patchAiSummary(
+    sessionId: string,
+    payload: { ai_summary: string; ai_insights: PostCallInsights },
+  ): Promise<void> {
+    await this.request('PATCH', `/voice-sessions/${sessionId}/ai-summary`, { body: payload });
   }
 
   private async request<T>(

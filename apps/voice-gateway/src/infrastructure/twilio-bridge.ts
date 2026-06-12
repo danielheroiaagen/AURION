@@ -8,6 +8,7 @@ import type {
   StreamingTranscriptionPort,
   UtteranceStream,
 } from '../application/ports.js';
+import type { PostCallSummarizer } from '../application/post-call-summarizer.js';
 import type { TelephonyConfig } from '../config.js';
 import type { CallCapacity } from './call-capacity.js';
 import { pcm16ToUlaw8k, ulawFrames } from './audio.js';
@@ -38,6 +39,8 @@ export interface TwilioBridgeOptions {
   readonly phoneToKey?: ReadonlyMap<string, string>;
   readonly telephony: TelephonyConfig;
   readonly log?: (message: string) => void;
+  /** Post-call summarizer (Phase-30); null disables AI summaries for phone calls. */
+  readonly postCallSummarizer?: PostCallSummarizer | null;
 }
 
 /** Digits-only form so +34 91…, 0034 91… and 91… all compare equal. */
@@ -211,7 +214,13 @@ export function handleTwilioCall(socket: WebSocket, options: TwilioBridgeOptions
             if (route) {
               identity = route;
             }
-            engine = new ConversationEngine(identity.api, options.brain, identity.lang);
+            engine = new ConversationEngine(
+              identity.api,
+              options.brain,
+              identity.lang,
+              options.postCallSummarizer ?? null,
+              event.caller ?? null,
+            );
             streamSid = event.streamSid;
             if (options.capacity && !counted) {
               counted = true;

@@ -100,6 +100,8 @@ services:
       LLM_MODEL: ${LLM_MODEL:-}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-30000}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-300}
+      # Post-call AI summary (Phase-30, ADR-039). Defaults to 'on' when LLM is configured.
+      POST_CALL_SUMMARY: ${POST_CALL_SUMMARY:-}
       # Server-side STT (ADR-025). The provider key lives HERE, never in a browser.
       STT_MODE: ${STT_MODE:-off}
       STT_API_KEY: ${STT_API_KEY:-}

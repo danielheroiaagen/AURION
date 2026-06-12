@@ -92,9 +92,19 @@ export interface RequestedAction {
   readonly approvalRequired: boolean;
 }
 
+/** AI-generated insights shape for the post-call summary endpoint (Phase-30). */
+export interface PostCallInsights {
+  readonly intent?: string;
+  readonly caller_name?: string | null;
+  readonly callback_number?: string | null;
+  readonly lead_quality?: 'hot' | 'warm' | 'cold' | null;
+  readonly action_items?: string[];
+  readonly language?: string;
+}
+
 export interface AurionApiPort {
   /** POST /voice-sessions (idempotent on external_session_id) + transition to active. */
-  startSession(externalSessionId: string): Promise<StartedSession>;
+  startSession(externalSessionId: string, callerNumber?: string | null): Promise<StartedSession>;
   /** Published knowledge titles for the brain context. */
   listPublishedKnowledge(): Promise<readonly string[]>;
   /** POST /actions with the turn-keyed Idempotency-Key. */
@@ -111,5 +121,13 @@ export interface AurionApiPort {
     sessionId: string,
     status: 'completed' | 'failed',
     fields: { summary?: string; outcome?: string },
+  ): Promise<void>;
+  /**
+   * PATCH /voice-sessions/:id/ai-summary (Phase-30).
+   * Fire-and-forget safe: caller should not await this for teardown.
+   */
+  patchAiSummary(
+    sessionId: string,
+    payload: { ai_summary: string; ai_insights: PostCallInsights },
   ): Promise<void>;
 }

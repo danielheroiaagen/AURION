@@ -1,13 +1,25 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, IsUrl, Length, Max, Min } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 import type { Page } from '../../../common/pagination/cursor';
 import {
   VOICE_SESSION_STATUSES,
   type VoiceSessionStatus,
 } from '../domain/voice-session';
-import type { VoiceSession } from '../application/voice-sessions.repository.port';
+import type { AiInsights, VoiceSession } from '../application/voice-sessions.repository.port';
 
 export class StartVoiceSessionDto {
   @ApiPropertyOptional({
@@ -19,6 +31,15 @@ export class StartVoiceSessionDto {
   @IsString()
   @Length(1, 200)
   external_session_id?: string;
+
+  @ApiPropertyOptional({
+    description: 'Caller phone number (E.164-ish, max 32 chars). Encrypted at rest (ADR-011).',
+    maxLength: 32,
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 32)
+  caller_number?: string;
 }
 
 export class ListVoiceSessionsQueryDto {
@@ -68,6 +89,64 @@ export class ChangeVoiceSessionStatusDto {
   transcript_uri?: string;
 }
 
+/** Structured AI insights shape for the PATCH ai-summary endpoint (Phase-30). */
+export class AiInsightsDto {
+  @ApiPropertyOptional({ description: 'Detected caller intent summary.' })
+  @IsOptional()
+  @IsString()
+  intent?: string;
+
+  @ApiPropertyOptional({ description: 'Caller name as mentioned in the conversation, or null.', type: String, nullable: true })
+  @IsOptional()
+  @IsString()
+  caller_name?: string | null;
+
+  @ApiPropertyOptional({ description: 'Callback phone number mentioned by the caller, or null.', type: String, nullable: true })
+  @IsOptional()
+  @IsString()
+  callback_number?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Lead quality classification.',
+    enum: ['hot', 'warm', 'cold'],
+    nullable: true,
+  })
+  @IsOptional()
+  @IsIn(['hot', 'warm', 'cold', null])
+  lead_quality?: 'hot' | 'warm' | 'cold' | null;
+
+  @ApiPropertyOptional({ description: 'Action items extracted from the conversation.', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  action_items?: string[];
+
+  @ApiPropertyOptional({ description: 'BCP-47 language code of the conversation.' })
+  @IsOptional()
+  @IsString()
+  language?: string;
+}
+
+/** Body for PATCH /voice-sessions/:id/ai-summary (Phase-30). */
+export class PatchAiSummaryDto {
+  @ApiProperty({
+    description: 'AI-generated summary prose (max 4000 chars). Encrypted at rest.',
+    maxLength: 4000,
+  })
+  @IsString()
+  @Length(1, 4000)
+  ai_summary!: string;
+
+  @ApiProperty({
+    description: 'Structured AI insights object.',
+    type: () => AiInsightsDto,
+  })
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AiInsightsDto)
+  ai_insights!: AiInsightsDto;
+}
+
 /** Stable response shape (ADR-009): snake_case, ISO-8601 timestamps. */
 export interface VoiceSessionResponse {
   id: string;
@@ -78,6 +157,12 @@ export interface VoiceSessionResponse {
   transcript_uri: string | null;
   summary: string | null;
   outcome: string | null;
+  /** Caller phone number; null when not captured. Encrypted at rest (ADR-011). */
+  caller_number: string | null;
+  /** AI-generated session summary prose; null until the summarizer runs. */
+  ai_summary: string | null;
+  /** AI-generated structured insights; null until the summarizer runs. */
+  ai_insights: AiInsights | null;
   started_at: string;
   ended_at: string | null;
   created_at: string;
@@ -94,6 +179,9 @@ export function toVoiceSessionResponse(session: VoiceSession): VoiceSessionRespo
     transcript_uri: session.transcriptUri,
     summary: session.summary,
     outcome: session.outcome,
+    caller_number: session.callerNumber,
+    ai_summary: session.aiSummary,
+    ai_insights: session.aiInsights,
     started_at: session.startedAt.toISOString(),
     ended_at: session.endedAt?.toISOString() ?? null,
     created_at: session.createdAt.toISOString(),

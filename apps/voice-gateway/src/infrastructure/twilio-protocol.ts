@@ -13,7 +13,14 @@ export class TwilioProtocolError extends Error {
 
 export type TwilioEvent =
   | { type: 'connected' }
-  | { type: 'start'; streamSid: string; callSid: string; key: string | null }
+  | {
+      type: 'start';
+      streamSid: string;
+      callSid: string;
+      key: string | null;
+      /** Caller phone number forwarded from TwiML <Parameter name="caller"> (Phase-30). */
+      caller: string | null;
+    }
   | { type: 'media'; payload: string }
   | { type: 'stop' }
   | { type: 'ignored' };
@@ -42,7 +49,8 @@ export function parseTwilioEvent(raw: unknown): TwilioEvent {
       }
       const params = start.customParameters as Record<string, unknown> | undefined;
       const key = typeof params?.key === 'string' ? params.key : null;
-      return { type: 'start', streamSid: start.streamSid, callSid: start.callSid, key };
+      const caller = typeof params?.caller === 'string' ? params.caller : null;
+      return { type: 'start', streamSid: start.streamSid, callSid: start.callSid, key, caller };
     }
     case 'media': {
       const media = frame.media as Record<string, unknown> | undefined;

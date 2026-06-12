@@ -86,6 +86,12 @@ export interface VoiceSessionsTable {
   /** Encrypted at the application layer before storage (ADR-011/ADR-012). */
   summary: string | null;
   outcome: string | null;
+  /** Caller E.164-ish phone number. Encrypted at rest (ADR-011/Phase-30). */
+  caller_number: string | null;
+  /** AI-generated session summary. Encrypted at rest (ADR-011/Phase-30). */
+  ai_summary: string | null;
+  /** AI-generated structured insights JSON. Encrypted at rest (ADR-011/Phase-30). */
+  ai_insights: string | null;
   started_at: Timestamp;
   ended_at: Timestamp | null;
   created_at: Timestamp;

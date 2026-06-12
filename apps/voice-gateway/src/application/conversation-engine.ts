@@ -1,5 +1,6 @@
 import { Conversation } from '../domain/conversation.js';
 import type { AgentBrainPort, AurionApiPort } from './ports.js';
+import type { PostCallSummarizer } from './post-call-summarizer.js';
 
 /**
  * Orchestrates one conversation against the system of record (ADR-018).
@@ -41,6 +42,10 @@ export class ConversationEngine {
     private readonly brain: AgentBrainPort,
     /** Channel's expected caller language (e.g. the phone line's es-ES). */
     private readonly lang?: string,
+    /** Optional post-call summarizer; when provided, fires after session close (Phase-30). */
+    private readonly summarizer?: PostCallSummarizer | null,
+    /** Optional caller number captured from the call's start frame (Phase-30). */
+    private readonly callerNumber?: string | null,
   ) {}
 
   get isStarted(): boolean {
@@ -55,7 +60,7 @@ export class ConversationEngine {
     if (this.sessionId) {
       throw new EngineError('session_already_started', 'This connection already has a session.');
     }
-    const { sessionId } = await this.api.startSession(externalSessionId);
+    const { sessionId } = await this.api.startSession(externalSessionId, this.callerNumber);
     this.sessionId = sessionId;
     return sessionId;
   }
@@ -113,6 +118,9 @@ export class ConversationEngine {
         summary: this.conversation.buildSummary(),
         outcome,
       });
+      // Fire-and-forget: the summarizer runs AFTER closeSession resolves and
+      // MUST NOT delay socket teardown or the `session.ended` event (Phase-30).
+      this.firePostCallSummary(sessionId);
     }
     return { sessionId, status: 'completed' };
   }
@@ -128,10 +136,41 @@ export class ConversationEngine {
         summary: this.conversation.buildSummary(),
         outcome: reason,
       });
+      // Fire-and-forget even on aborted sessions — we still want the summary.
+      this.firePostCallSummary(this.sessionId);
     } catch {
       // The API is the system of record; if it is unreachable the session
       // stays `active` and operational tooling reaps it — nothing to do here.
     }
+  }
+
+  /**
+   * Enqueue the post-call summarizer as a fire-and-forget promise.
+   * The promise is intentionally NOT awaited: callers depend on `end()`
+   * and `abort()` returning quickly for socket teardown.
+   */
+  private firePostCallSummary(sessionId: string): void {
+    if (!this.summarizer) {
+      return;
+    }
+    const turns = [...this.conversation.transcript];
+    void this.summarizer
+      .summarize(turns)
+      .then(async (result) => {
+        if (!result) {
+          return;
+        }
+        await this.api.patchAiSummary(sessionId, {
+          ai_summary: result.summary,
+          ai_insights: result.insights,
+        });
+      })
+      .catch((error: unknown) => {
+        // Non-fatal: the session record already exists without AI fields.
+        process.stdout.write(
+          `post-call summary failed for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+      });
   }
 
   private requireSession(): string {
