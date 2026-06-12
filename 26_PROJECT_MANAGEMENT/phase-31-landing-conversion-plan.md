@@ -31,11 +31,13 @@ Replace the hero copy and CTAs with proof-led content:
 - Generation script `tools/demo-audio/generate.mjs` for reproducing the
   audio asset.
 
-### U2 — Approval panel visual ⏳ pending
+### U2 — Approval panel visual ✅ implemented
 
-Add a screenshot or animated GIF of the human-approval dashboard panel
-immediately after the hero. Captioned as "Lo que apruebas desde tu panel."
-Proves the human-in-the-loop claim visually.
+Pure HTML/CSS mockup card (zero JS) of the real dashboard approval panel,
+placed after the "Cómo funciona" section and before the demo-request form.
+Mirrors the same Marta López call from the U1 audio demo (continuity).
+Decorative Aprobar/Rechazar elements are `<span>` with `aria-hidden="true"`;
+no Editar capability shown (honesty rule). Caption and footer note included.
 
 ### U3 — Sector use cases ⏳ pending
 
