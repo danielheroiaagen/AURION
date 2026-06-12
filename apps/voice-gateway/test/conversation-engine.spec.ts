@@ -6,12 +6,15 @@ import type {
   AurionApiPort,
   BrainReply,
   RequestedAction,
+  TranscriptTurn,
 } from '../src/application/ports.js';
 
 class FakeApi implements AurionApiPort {
   started: string[] = [];
   actionRequests: Array<{ idempotencyKey: string; actionType: string; sessionId: string }> = [];
   closes: Array<{ sessionId: string; status: string; summary?: string; outcome?: string }> = [];
+  transcripts: Array<{ sessionId: string; turns: readonly TranscriptTurn[] }> = [];
+  transcriptError: Error | null = null;
   closeError: Error | null = null;
   actionStatus = 'requested';
 
@@ -47,6 +50,13 @@ class FakeApi implements AurionApiPort {
       throw this.closeError;
     }
     this.closes.push({ sessionId, status, ...fields });
+  }
+
+  async recordTranscript(sessionId: string, turns: readonly TranscriptTurn[]): Promise<void> {
+    if (this.transcriptError) {
+      throw this.transcriptError;
+    }
+    this.transcripts.push({ sessionId, turns });
   }
 }
 
@@ -87,6 +97,36 @@ describe('ConversationEngine', () => {
     expect(api.closes[0].summary).toContain('caller: hola');
     expect(api.closes[0].summary).toContain('agent: Ticket requested.');
     expect(api.closes[0].summary).toContain('ticket.create (action-1)');
+  });
+
+  it('flushes the per-turn transcript for QA before closing (ADR-039)', async () => {
+    const api = new FakeApi();
+    const engine = new ConversationEngine(api, brainReplying(PLAIN));
+
+    await engine.start('ext-qa-1');
+    await engine.userTurn('hola, tengo una duda');
+    await engine.end('resolved');
+
+    expect(api.transcripts).toHaveLength(1);
+    expect(api.transcripts[0].sessionId).toBe('session-1');
+    expect(api.transcripts[0].turns).toEqual([
+      { index: 0, speaker: 'caller', text: 'hola, tengo una duda' },
+      { index: 1, speaker: 'agent', text: 'How can I help?' },
+    ]);
+  });
+
+  it('transcript retention is best-effort: a failure never blocks the close (ADR-039)', async () => {
+    const api = new FakeApi();
+    api.transcriptError = new Error('transcript endpoint down');
+    const engine = new ConversationEngine(api, brainReplying(PLAIN));
+
+    await engine.start('ext-qa-2');
+    await engine.userTurn('hola');
+    // The transcript write throws, but the session still closes cleanly.
+    const closed = await engine.end('resolved');
+    expect(closed.status).toBe('completed');
+    expect(api.closes).toHaveLength(1);
+    expect(api.transcripts).toHaveLength(0);
   });
 
   it('keys action requests by session and turn (reconnect-safe idempotency)', async () => {

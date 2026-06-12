@@ -51,6 +51,10 @@ export interface TelephonyConfig {
   /** Cost guards for paid traffic (ADR-034): simultaneous and daily caps. */
   readonly maxConcurrentCalls: number;
   readonly maxCallsPerDay: number;
+  /** Backchannel window (ADR-038): speak a short filler when the brain has
+   * not answered within this many ms; 0 disables. The reply text still
+   * follows and stays the source of truth. */
+  readonly backchannelMs: number;
   /** Per-number tenant routes (ADR-035); empty = single-tenant. */
   readonly routes: readonly TenantRoute[];
 }
@@ -76,6 +80,9 @@ export interface TenantRoute {
   readonly clientKey: string;
   readonly greeting: string;
   readonly lang: string;
+  /** Tenant's own brand voice (ADR-038 Audio Pro); empty → the gateway's
+   * default TTS_VOICE. A provider voice id (OpenAI name or HeyGen voice_id). */
+  readonly voice: string;
   /** Tenant's own client_credentials identity (its tenant_id is in the token). */
   readonly oidc: OidcMachineConfig;
 }
@@ -103,10 +110,22 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+/** Like parsePositiveInt but admits 0 (an explicit "disabled"); only a
+ * negative or unparseable value falls back. */
+function parseNonNegativeInt(value: string | undefined, fallback: number): number {
+  if (value === undefined || value.trim() === '') {
+    return fallback;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 /**
  * Parse TELEPHONY_TENANT_ROUTES (ADR-035): a JSON array of
- * { phone, clientKey, greeting, lang?, oidcClientId, oidcClientSecret,
- *   oidcTokenUrl? }. Fail-closed: malformed JSON or an incomplete route
+ * { phone, clientKey, greeting, lang?, voice?, oidcClientId,
+ *   oidcClientSecret, oidcTokenUrl? }. `voice` is the tenant's brand voice
+ *   (ADR-038); empty → the gateway default. Fail-closed: malformed JSON or
+ *   an incomplete route
  * aborts boot — a misconfigured tenant must never silently fall back to
  * another tenant's identity. The token URL defaults to the gateway's own
  * OIDC token URL (the same realm).
@@ -167,6 +186,7 @@ function parseTenantRoutes(
         (typeof route.greeting === 'string' ? route.greeting.trim() : '') ||
         'Hola, soy un asistente virtual de inteligencia artificial. ¿En qué puedo ayudarte?',
       lang: (typeof route.lang === 'string' ? route.lang.trim() : '') || 'es-ES',
+      voice: typeof route.voice === 'string' ? route.voice.trim() : '',
       oidc: {
         tokenUrl: tokenUrl.replace(/\/+$/, ''),
         clientId,
@@ -354,6 +374,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
       sttModel: (env.TELEPHONY_STT_MODEL ?? '').trim(),
       maxConcurrentCalls: parsePositiveInt(env.TELEPHONY_MAX_CONCURRENT, 4),
       maxCallsPerDay: parsePositiveInt(env.TELEPHONY_MAX_CALLS_PER_DAY, 200),
+      backchannelMs: parseNonNegativeInt(env.TELEPHONY_BACKCHANNEL_MS, 1500),
       routes: parseTenantRoutes(env.TELEPHONY_TENANT_ROUTES, oidc),
     };
   }

@@ -73,6 +73,20 @@ describe('OpenAiSpeechSynthesizer (fetch only, no SDK)', () => {
     });
   });
 
+  it('overrides the default voice with a per-tenant brand voice (ADR-038)', async () => {
+    // Fresh Response per call: a Response body is consumable only once.
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async () => new Response(Buffer.from('mp3-bytes'), { status: 200 }));
+    const synthesizer = new OpenAiSpeechSynthesizer(TTS_CONFIG, fetchMock as unknown as typeof fetch);
+    await synthesizer.synthesize('hola', 'verse');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).voice).toBe('verse');
+
+    // Absent or empty override falls back to the configured default voice.
+    await synthesizer.synthesize('hola', '');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).voice).toBe('alloy');
+  });
+
   it('caps the synthesized text at maxTextChars — cost is bounded', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(Buffer.from('mp3'), { status: 200 }),

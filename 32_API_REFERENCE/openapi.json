@@ -632,6 +632,72 @@
         ]
       }
     },
+    "/api/v1/voice-sessions/{id}/turns": {
+      "post": {
+        "operationId": "VoiceSessionsController_appendTurns",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppendTranscriptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Append transcript turns for QA (idempotent on turn index). Encrypted at rest.",
+        "tags": [
+          "voice-sessions"
+        ]
+      },
+      "get": {
+        "operationId": "VoiceSessionsController_getTurns",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the conversation transcript for QA review (decrypted for authorized reviewers).",
+        "tags": [
+          "voice-sessions"
+        ]
+      }
+    },
     "/api/v1/actions": {
       "post": {
         "operationId": "ControlledActionsController_request",
@@ -1048,6 +1114,48 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "TranscriptTurnDto": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Zero-based position of the turn in the conversation."
+          },
+          "speaker": {
+            "type": "string",
+            "enum": [
+              "caller",
+              "agent"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 8000,
+            "description": "What was said on this turn. Encrypted at rest."
+          }
+        },
+        "required": [
+          "index",
+          "speaker",
+          "text"
+        ]
+      },
+      "AppendTranscriptDto": {
+        "type": "object",
+        "properties": {
+          "turns": {
+            "description": "Turns to append (idempotent on index).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranscriptTurnDto"
+            }
+          }
+        },
+        "required": [
+          "turns"
         ]
       },
       "RequestActionDto": {

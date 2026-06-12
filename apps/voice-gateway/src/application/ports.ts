@@ -72,12 +72,14 @@ export interface SynthesizedSpeech {
 
 export interface SpeechSynthesisPort {
   /** Spoken audio for one agent reply. Audio is an enhancement (ADR-026):
-   * the TEXT event is the source of truth and is delivered first. */
-  synthesize(text: string): Promise<SynthesizedSpeech>;
+   * the TEXT event is the source of truth and is delivered first.
+   * `voice` overrides the configured default — the per-tenant brand voice
+   * (ADR-038 Audio Pro); absent → the gateway's default voice. */
+  synthesize(text: string, voice?: string): Promise<SynthesizedSpeech>;
   /** Optional streaming form (ADR-032): emits raw audio chunks as the
    * provider produces them — the phone starts speaking ~4x sooner.
    * Resolves when the stream ends; chunk format matches `synthesize`. */
-  synthesizeStream?(text: string, onAudio: (chunk: Buffer) => void): Promise<void>;
+  synthesizeStream?(text: string, onAudio: (chunk: Buffer) => void, voice?: string): Promise<void>;
 }
 
 // --- AURION API (system of record) ------------------------------------------
@@ -90,6 +92,13 @@ export interface RequestedAction {
   readonly actionId: string;
   readonly status: string;
   readonly approvalRequired: boolean;
+}
+
+/** One transcript turn for QA retention (ADR-039). */
+export interface TranscriptTurn {
+  readonly index: number;
+  readonly speaker: 'caller' | 'agent';
+  readonly text: string;
 }
 
 export interface AurionApiPort {
@@ -112,4 +121,8 @@ export interface AurionApiPort {
     status: 'completed' | 'failed',
     fields: { summary?: string; outcome?: string },
   ): Promise<void>;
+  /** Optional: persist the per-turn transcript for QA review (ADR-039).
+   * Best-effort — the engine never blocks session close on it. Idempotent on
+   * (session, turn index) at the API. */
+  recordTranscript?(sessionId: string, turns: readonly TranscriptTurn[]): Promise<void>;
 }

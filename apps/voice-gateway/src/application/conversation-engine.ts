@@ -109,6 +109,7 @@ export class ConversationEngine {
     const sessionId = this.requireSession();
     if (!this.closed) {
       this.closed = true;
+      await this.flushTranscript(sessionId);
       await this.api.closeSession(sessionId, 'completed', {
         summary: this.conversation.buildSummary(),
         outcome,
@@ -123,6 +124,7 @@ export class ConversationEngine {
       return;
     }
     this.closed = true;
+    await this.flushTranscript(this.sessionId);
     try {
       await this.api.closeSession(this.sessionId, 'failed', {
         summary: this.conversation.buildSummary(),
@@ -131,6 +133,29 @@ export class ConversationEngine {
     } catch {
       // The API is the system of record; if it is unreachable the session
       // stays `active` and operational tooling reaps it — nothing to do here.
+    }
+  }
+
+  /**
+   * Persist the per-turn transcript for QA (ADR-039). Best-effort by design:
+   * a failure here never blocks session close — the encrypted summary still
+   * carries the gist, and the transcript endpoint is idempotent on retries.
+   */
+  private async flushTranscript(sessionId: string): Promise<void> {
+    if (!this.api.recordTranscript) {
+      return;
+    }
+    const turns = this.conversation.transcript;
+    if (turns.length === 0) {
+      return;
+    }
+    try {
+      await this.api.recordTranscript(
+        sessionId,
+        turns.map((turn) => ({ index: turn.index, speaker: turn.speaker, text: turn.text })),
+      );
+    } catch {
+      // Transcript retention is best-effort; never let it sink the close.
     }
   }
 

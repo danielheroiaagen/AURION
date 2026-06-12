@@ -137,6 +137,23 @@ export interface AuditEventsTable {
   created_at: Timestamp;
 }
 
+export type TurnSpeaker = 'caller' | 'agent';
+
+/**
+ * Per-turn transcript retained for call QA (migration 0003, ADR-039).
+ * Append-only at the database layer (same guard as audit_events); `text` is
+ * encrypted at the application layer before storage (ADR-011/ADR-012).
+ */
+export interface VoiceSessionTurnsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  voice_session_id: string;
+  turn_index: number;
+  speaker: TurnSpeaker;
+  text: string;
+  created_at: Timestamp;
+}
+
 export interface Database {
   tenants: TenantsTable;
   users: UsersTable;
@@ -145,4 +162,5 @@ export interface Database {
   voice_sessions: VoiceSessionsTable;
   controlled_actions: ControlledActionsTable;
   audit_events: AuditEventsTable;
+  voice_session_turns: VoiceSessionTurnsTable;
 }

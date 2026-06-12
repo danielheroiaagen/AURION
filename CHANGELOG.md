@@ -8,6 +8,63 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 
 ### Added
 
+- ADR-039 call QA, step 1: per-turn transcript retention. New
+  `voice_session_turns` table (migration 0003) — tenant-scoped (RLS), the
+  spoken `text` AES-256-GCM encrypted at the application layer, and
+  append-only (the same `aurion_block_mutation` guard as `audit_events`) so
+  a transcript can never be rewritten. Two endpoints on the voice-sessions
+  group: `POST /voice-sessions/:id/turns` (the voice agent's
+  `conversation:write`, idempotent on `(session, turn_index)`) and
+  `GET /voice-sessions/:id/turns` (QA read, the existing
+  `conversation:review` permission, decrypted). The gateway flushes the
+  whole transcript in one best-effort batch at session close — no extra API
+  round-trip on the latency-critical call path, and a failure never blocks
+  the close. New API integration tests (ciphertext at rest, ordering, RLS
+  isolation, append-only immutability, idempotent replay, 404 on unknown
+  session), gateway unit tests, and a phase-30 contract suite; OpenAPI
+  artifact regenerated.
+
+- ADR-038 speech-to-speech decision + Phase 29 (Audio Pro) / Phase 30
+  (Call QA) plans: the answering tier keeps the STT → brain → TTS pipeline
+  because the text turn is what makes actions approval-gated (ADR-013) and
+  the answer the source of truth (ADR-026); native speech-to-speech is
+  scoped as a deferred, ADR-gated premium tier, not a silent swap. First
+  Audio Pro increment shipped — **backchannel on slow turns**: when the
+  brain has not answered within `TELEPHONY_BACKCHANNEL_MS` (default 1500,
+  `0` disables) the phone speaks a short, language-matched filler ("Un
+  momento, lo reviso.") so a slow turn never leaves dead air; the reply
+  text still follows and stays the source of truth, and fast turns
+  (gpt-5.4-mini ≈ 0.9 s) never trigger it. Two new gateway Vitest cases
+  (slow turn fills then replies; fast turn does not) and a phase-29
+  contract suite.
+- Phase 29 Audio Pro, brand voice per tenant (ADR-038): `SpeechSynthesisPort`
+  takes an optional `voice` override and each multi-tenant telephony route
+  (ADR-035) carries its own `voice`, so every client answers in its own
+  brand voice on one shared synthesizer — empty falls back to the default
+  `TTS_VOICE`. The telephony greeting cache is now keyed by (voice, text)
+  so it never replays one tenant's audio for another. OpenAI and HeyGen
+  adapters honor the override; new unit, call-flow and contract tests.
+- Phase 29 Audio Pro, semantic end-of-turn (ADR-038, amends ADR-032 VAD):
+  the manual-VAD path (gpt-realtime-whisper) closes a turn on a two-tier
+  pause — a hard window (2× the configured silence) always closes it, while
+  the soft window closes it only when the running transcript reads finished
+  (`looksLikeCompleteTurn`, fed by streaming transcription deltas). A pause
+  on a hanging function word ("…cambiar mi") is held to the hard window
+  instead of being cut off; a finished sentence still commits promptly at
+  the soft window, and empty/unknown text commits at the soft window so
+  there is no added latency or regression. New unit, two call-flow and
+  contract tests.
+- Phase 29 Audio Pro, barge-in v2 (ADR-038) — completes the phase. Two
+  hardenings over v1's `clear`: (a) when the caller starts speaking the
+  bridge stops emitting frames at once (`playbackInterrupted`) AND flushes
+  Twilio's buffer, so the agent never keeps talking over the caller while
+  the in-flight reply finishes rendering; (b) a new windowed `EchoGuard`
+  (a bounded set of recent agent lines, substring match plus a high-overlap
+  rule for STT-mangled tails) replaces v1's single-line guard, so a
+  barge-in tail, a filler, or the greeting never becomes a ghost turn while
+  a real caller turn sharing a word or two survives. New EchoGuard unit
+  tests, a call-flow test asserting the in-flight reply stops on barge-in,
+  and contract coverage.
 - Professional repository governance files for Git/GitHub readiness.
 - Phase 0 GitHub readiness plan.
 - ADR for the initial Voice Agent SaaS Core MVP.
