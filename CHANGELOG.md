@@ -8,6 +8,14 @@ The format follows Keep a Changelog principles and commit messages follow Conven
 
 ### Added
 
+- Phase 31 U2 approval panel: pure HTML/CSS mockup card of the real human-approval
+  dashboard panel, placed between the "Cómo funciona" steps and the demo-request form.
+  Mirrors the same Marta López dental-cleaning call from the U1 audio demo for visual
+  continuity. Shows detected intent (Pedir cita), lead quality chip (Caliente), AI
+  summary, proposed action (calendar.update · pending-approval chip), and decorative
+  Aprobar/Rechazar elements (non-interactive `<span>` with aria-hidden, card has
+  role="img" aria-label). No Editar button — honesty rule: edit capability does not
+  exist in the product. Responsive down to 390 px; zero new JS.
 - ADR-040 / Phase 31 U1 live demo hero: replaced hero copy/CTAs with proof-led content
   ("AURION: la recepcionista IA que atiende tus llamadas en español, 24/7"), embedded
   voice widget with lazy activation (zero WS on page load, GDPR-clean), pre-recorded

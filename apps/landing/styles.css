@@ -143,6 +143,136 @@ footer { border-top: 1px solid var(--border); padding: 2.5rem 0; color: var(--di
 .demo-disclosure { text-align: center; font-size: 0.82rem; color: var(--dim); margin-bottom: 1.5rem; }
 .widget-error { text-align: center; color: var(--dim); font-size: 0.92rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 
+/* Approval panel mockup (Phase 31 U2) */
+.panel-mock {
+  max-width: 640px;
+  margin: 0 auto 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.06), 0 8px 32px rgba(2, 6, 16, 0.45);
+}
+
+.panel-mock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.3rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.panel-mock-call-label { color: var(--dim); }
+.panel-mock-phone { font-weight: 600; color: var(--text); letter-spacing: 0.03em; }
+
+.panel-mock-body { padding: 1.1rem 1.3rem; display: flex; flex-direction: column; gap: 0.85rem; }
+
+.panel-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.91rem;
+}
+.panel-row--summary { align-items: flex-start; }
+.panel-label {
+  min-width: 11rem;
+  color: var(--dim);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-top: 0.1rem;
+  flex-shrink: 0;
+}
+.panel-value { color: var(--text); line-height: 1.5; }
+.panel-action-value { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.panel-action-type {
+  font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-size: 0.82rem;
+  color: var(--primary);
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 6px;
+  padding: 0.1rem 0.45rem;
+}
+
+/* Chips — shared between panel mockup and any future uses */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.18rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chip-ok {
+  background: rgba(52, 211, 153, 0.14);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  color: #34d399;
+}
+.chip-warn {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+}
+
+/* Decorative action row — styled like real buttons but not interactive */
+.panel-mock-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.9rem 1.3rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.panel-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.15rem;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  font-weight: 650;
+  cursor: default;
+  user-select: none;
+}
+.panel-btn--ok {
+  background: var(--grad);
+  color: #051018;
+}
+.panel-btn--ghost {
+  background: transparent;
+  color: var(--dim);
+  border: 1px solid var(--border);
+}
+
+/* Caption and footer note under the card */
+.panel-mock-caption {
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.82rem;
+  font-style: italic;
+  max-width: 640px;
+  margin: 0 auto 0.6rem;
+}
+.panel-mock-footer-note {
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.93rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Responsive: collapse label/value stack below 520 px */
+@media (max-width: 520px) {
+  .panel-row { flex-direction: column; gap: 0.25rem; }
+  .panel-label { min-width: unset; }
+  .panel-mock-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
+}
+
 /* Legal pages */
 .legal { padding: 3rem 0; max-width: 800px; }
 .legal h1 { font-size: 1.9rem; margin-bottom: 0.5rem; }

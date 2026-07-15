@@ -177,5 +177,100 @@ class DemoAudioAssetTests(unittest.TestCase):
         )
 
 
+# ---------------------------------------------------------------------------
+# U2 — Approval panel section
+# ---------------------------------------------------------------------------
+
+class LandingApprovalPanelTests(unittest.TestCase):
+    """
+    Validates the 'approval-panel' section added in Phase 31 U2.
+
+    Contract:
+    - Section id="approval-panel" exists.
+    - Required heading is present verbatim.
+    - Data fields: 'Intención detectada', 'Pendiente de aprobación',
+      'Ejemplo ilustrativo' marker all present within the section.
+    - Decorative action row: 'Aprobar' and 'Rechazar' strings present
+      inside the section.
+    - 'Editar' does NOT appear anywhere inside the approval-panel section
+      (honesty rule: no edit capability exists in the real product).
+    - aria-hidden="true" present on the decorative action row container.
+    - Plan file marks U2 implemented (checkbox ticked).
+    - U1 markers are unaffected (tested by the classes above; this class
+      adds a smoke-check for the section boundary only).
+    """
+
+    def _landing(self) -> str:
+        return read(LANDING / "index.html")
+
+    def _panel_section(self) -> str:
+        """Extract the approval-panel section substring from the landing HTML."""
+        landing = self._landing()
+        start = landing.find('id="approval-panel"')
+        self.assertNotEqual(start, -1, "approval-panel section not found in index.html")
+        # Slice from the opening of the section tag containing this id.
+        # Walk backward to find the '<section' that owns this id.
+        section_start = landing.rfind("<section", 0, start)
+        # Find the matching </section> after the id.
+        section_end = landing.find("</section>", start)
+        self.assertNotEqual(section_end, -1, "</section> closing tag for approval-panel not found")
+        return landing[section_start : section_end + len("</section>")]
+
+    def test_approval_panel_section_exists(self):
+        """Section with id='approval-panel' must be present."""
+        landing = self._landing()
+        self.assertIn('id="approval-panel"', landing)
+
+    def test_approval_panel_heading_present(self):
+        """Required h2 verbatim copy must be present."""
+        section = self._panel_section()
+        self.assertIn("Nada se ejecuta sin tu aprobación. Este es tu panel.", section)
+
+    def test_intencion_detectada_field_present(self):
+        """'Intención detectada' data field must be present in the section."""
+        section = self._panel_section()
+        self.assertIn("Intención detectada", section)
+
+    def test_pendiente_de_aprobacion_chip_present(self):
+        """'Pendiente de aprobación' status chip must be present in the section."""
+        section = self._panel_section()
+        self.assertIn("Pendiente de aprobación", section)
+
+    def test_ejemplo_ilustrativo_caption_present(self):
+        """Illustrative caption 'Ejemplo ilustrativo' must be present in the section."""
+        section = self._panel_section()
+        self.assertIn("Ejemplo ilustrativo", section)
+
+    def test_aprobar_decorative_element_present(self):
+        """Decorative 'Aprobar' element must appear in the section."""
+        section = self._panel_section()
+        self.assertIn("Aprobar", section)
+
+    def test_rechazar_decorative_element_present(self):
+        """Decorative 'Rechazar' element must appear in the section."""
+        section = self._panel_section()
+        self.assertIn("Rechazar", section)
+
+    def test_editar_string_absent_from_section(self):
+        """'Editar' must NOT appear inside the approval-panel section (honesty rule)."""
+        section = self._panel_section()
+        self.assertNotIn("editar", section.lower())
+
+    def test_aria_hidden_on_decorative_action_row(self):
+        """The decorative action row container must carry aria-hidden='true'."""
+        section = self._panel_section()
+        self.assertIn('aria-hidden="true"', section)
+
+    def test_plan_marks_u2_implemented(self):
+        """Phase-31 plan must mark U2 as implemented (checkbox ticked)."""
+        text = read(PHASE31_PLAN)
+        # Accept any common 'done' marker immediately following 'U2'
+        import re
+        self.assertTrue(
+            re.search(r"U2.*(?:✅|implemented|\[x\])", text),
+            "Plan file does not mark U2 as implemented",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

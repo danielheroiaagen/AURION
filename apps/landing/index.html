@@ -152,6 +152,81 @@
     </section>
 
     <!-- ================================================================
+         APPROVAL PANEL MOCKUP — Phase 31 U2
+         Shows the real human-approval workflow (approve / reject only —
+         no "edit" capability exists in the product).
+         All field data mirrors the same Marta López call from the U1
+         audio demo for continuity.
+         ================================================================ -->
+    <section id="approval-panel">
+      <div class="wrap">
+        <h2 class="section-title">Nada se ejecuta sin tu aprobación. Este es tu panel.</h2>
+        <p class="section-sub">
+          Cada llamada genera un resumen y, si hace falta, una acción propuesta. Tú la apruebas
+          o la rechazas desde el panel, en el momento o cuando puedas.
+        </p>
+
+        <!-- Mockup card — decorative illustration of the real dashboard.
+             role="img" + aria-label gives screen readers a meaningful
+             description of the whole card instead of fragmented field text. -->
+        <div class="panel-mock"
+             role="img"
+             aria-label="Ejemplo del panel de aprobación: llamada con intención de pedir cita, acción de calendario pendiente de aprobación">
+
+          <!-- Card header -->
+          <div class="panel-mock-header">
+            <span class="panel-mock-call-label">Llamada entrante · hoy, 16:02</span>
+            <span class="panel-mock-phone">612 345 678</span>
+          </div>
+
+          <!-- Data rows -->
+          <div class="panel-mock-body">
+            <div class="panel-row">
+              <span class="panel-label">Intención detectada</span>
+              <span class="panel-value">Pedir cita</span>
+            </div>
+            <div class="panel-row">
+              <span class="panel-label">Calidad del lead</span>
+              <span class="chip chip-ok">Caliente</span>
+            </div>
+            <div class="panel-row panel-row--summary">
+              <span class="panel-label">Resumen</span>
+              <span class="panel-value">
+                Marta López quiere una limpieza dental el jueves por la tarde.
+                AURION propuso el jueves a las 16:30 y la clienta recibirá la
+                confirmación por WhatsApp.
+              </span>
+            </div>
+            <div class="panel-row">
+              <span class="panel-label">Acción propuesta</span>
+              <span class="panel-value panel-action-value">
+                <span class="panel-action-type">calendar.update</span>
+                · Crear cita: jueves, 16:30 — Limpieza dental
+                <span class="chip chip-warn">Pendiente de aprobación</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Decorative action row — NOT interactive controls.
+               aria-hidden hides these from screen readers because the
+               card already has a meaningful aria-label on the wrapper. -->
+          <div class="panel-mock-actions" aria-hidden="true">
+            <span class="panel-btn panel-btn--ok">Aprobar</span>
+            <span class="panel-btn panel-btn--ghost">Rechazar</span>
+          </div>
+        </div>
+        <!-- end .panel-mock -->
+
+        <p class="panel-mock-caption">
+          Ejemplo ilustrativo del panel real de AURION. Cada acción queda registrada y auditada.
+        </p>
+        <p class="panel-mock-footer-note">
+          También esperan tu aprobación cuando aplican: mensajes de WhatsApp, emails y tickets.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================================================================
          DEMO REQUEST FORM — kept from Phase 29 (ADR-038 / lint gate)
          ================================================================ -->
     <section id="demo">
